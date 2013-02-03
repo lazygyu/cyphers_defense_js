@@ -54,10 +54,13 @@ TileMap.prototype.parseText = function(txt){
 		if( typeof(this.map[i]) == "undefined" ) this.map[i] = [];
 		for(var j=0;j<this.height;j++){
 			this.map[i][j] = tmp[i + (j*this.width)]; 
-
 			var tmpTile = new Tile(this.mapchip, null, i, j);
 			var obj = this.sh.getFrame(this.map[i][j]);
-			tmpTile.sourceRect = obj.rect;
+			try{
+				tmpTile.sourceRect = obj.rect;
+			}catch(er){
+				console.log("i : " + i + " / j : " + j + " / map : " + this.map[i][j]);
+			}
 			this.stage.addChild(tmpTile);
 			this.tiles.push(tmpTile);
 		}
