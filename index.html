@@ -1,0 +1,100 @@
+<!doctype html5>
+<html>
+<head>
+	<title>HTML5 demo</title>
+	<script type="text/javascript" src="http://code.createjs.com/easeljs-0.5.0.min.js"></script>
+	<script type="text/javascript" src="js/TileMap.js"></script>
+	<script type="text/javascript" src="js/ContentManager.js"></script>
+	<script type="text/javascript" src="js/player.js"></script>
+	<script type="text/javascript">
+		var stage, map, contentManager, player;
+		var Direction = ['s', 'sw', 'w', 'nw', 'n', 'ne', 'e', 'se'];
+		function init(){
+			stage = new createjs.Stage("mainCanvas");
+			map = new TileMap({stage : stage, width:31, height:31});
+			map.setMapChip('images/town01_a.gif');
+			
+			contentManager = new ContentManager();
+			contentManager.SetDownloadComplated(startGame);
+			contentManager.StartDownload();
+		}
+		
+		var keys = {};
+
+		function keydownproc(e){
+			if(!e) e=event;
+			if(!keys[e.keyCode]){
+				keys[e.keyCode] = 1;
+				keyproc(e);
+			}
+		}
+
+		function keyproc(e){
+			console.log("key down : " + e.which);
+			if( !e ) e = event;
+			var c = player.spriteSheet.getFrame(player.currentFrame);
+			console.log(c.regY + "/" + player.y);
+			switch(e.which){
+				case 32:
+					player.gotoAndPlay("attack_" + player.direction);
+					player.state = 2;
+					break;
+				case 13:
+					player.setDirection(Direction[(Direction.indexOf(player.direction) + 1)%8]);
+					break;
+				case 38:
+					player.setDirection('n');
+					player.gotoAndPlay('walk_n');
+					player.state = 1;
+					break;
+				case 40:
+					player.setDirection('s');
+					player.gotoAndPlay('walk_s');
+					player.state = 1;
+					break;
+				case 39:
+					player.setDirection('e');
+					player.gotoAndPlay('walk_e');
+					player.state = 1;
+					break;
+				case 37:
+					player.setDirection('w');
+					player.gotoAndPlay('walk_w');
+					player.state = 1;
+					break;
+			}
+		}
+
+		function keyupproc(e){
+			if( !e ) e = event;
+			keys[e.keyCode] = 0;
+			player.state = 0;
+			player.gotoAndPlay('stand_' + player.direction);
+		}
+
+		function startGame(){
+			map.createRandom();
+			player = new Character(contentManager.imgDimus);
+			stage.addChild(player);
+			player.x = 300;
+			player.y = 300;
+			createjs.Ticker.addListener(window);
+			createjs.Ticker.useRAF = true;
+			createjs.Ticker.setFPS(60);
+			stage.update();
+			document.onkeydown = keydownproc;
+			document.onkeyup = keyupproc;
+		}
+
+		function tick(){
+			player.tick();
+			stage.update();
+		}
+	</script>
+</head>
+<body onload="init();">
+	<canvas id="mainCanvas" width="500" height="500">
+		This page needs a browser that support the canvas.
+	</canvas>
+</body>
+</html>
