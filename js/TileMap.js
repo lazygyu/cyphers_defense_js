@@ -53,7 +53,7 @@ TileMap.prototype.parseText = function(txt){
 	for(var i=0;i<this.width;i++){
 		if( typeof(this.map[i]) == "undefined" ) this.map[i] = [];
 		for(var j=0;j<this.height;j++){
-			this.map[i][j] = txt.charCodeAt(i + (j*this.width));
+			this.map[i][j] = tmp[i + (j*this.width)]; 
 
 			var tmpTile = new Tile(this.mapchip, null, i, j);
 			var obj = this.sh.getFrame(this.map[i][j]);
