@@ -49,7 +49,7 @@ TileMap.prototype.createRandom = function(){
 }
 
 TileMap.prototype.parseText = function(txt){
-	var tmp = txt.split(' ');
+	var tmp = txt.replace(/\n/g, '').split(' ');
 	for(var i=0;i<this.width;i++){
 		if( typeof(this.map[i]) == "undefined" ) this.map[i] = [];
 		for(var j=0;j<this.height;j++){
