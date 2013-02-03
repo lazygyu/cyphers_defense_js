@@ -21,6 +21,19 @@ TileMap.prototype.setSize = function(w, h){
 	this.height = h;
 }
 
+TileMap.prototype.fill = function(no){
+	var f = this.sh.getFrame(no);
+	for(var i=0;i<this.width;i++){
+		for(var j=0;j<this.height;j++){
+			this.map[i][j] = no;
+
+		}
+	}
+	for(var t in this.tiles){
+		this.tiles[t].sourceRect = f.rect;
+	}
+}
+
 TileMap.prototype.createRandom = function(){
 	for(var i = 0; i < this.width; i++){
 		if( typeof(this.map[i]) == "undefined" ) this.map[i] = [];
@@ -30,6 +43,7 @@ TileMap.prototype.createRandom = function(){
 			var obj = this.sh.getFrame(this.map[i][j]);
 			tmpTile.sourceRect = obj.rect;
 			this.stage.addChild(tmpTile);
+			this.tiles.push(tmpTile);
 		}
 	}
 }
@@ -39,11 +53,13 @@ TileMap.prototype.parseText = function(txt){
 	for(var i=0;i<this.width;i++){
 		if( typeof(this.map[i]) == "undefined" ) this.map[i] = [];
 		for(var j=0;j<this.height;j++){
-			this.map[i][j] = (i + (j*30)); //parseInt(tmp[j + (i*this.width)], 10);
+			this.map[i][j] = txt.charCodeAt(i + (j*this.width));
+
 			var tmpTile = new Tile(this.mapchip, null, i, j);
 			var obj = this.sh.getFrame(this.map[i][j]);
 			tmpTile.sourceRect = obj.rect;
 			this.stage.addChild(tmpTile);
+			this.tiles.push(tmpTile);
 		}
 	}
 }

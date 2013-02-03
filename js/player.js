@@ -11,7 +11,7 @@ Character.prototype.maxHp = 100;
 Character.prototype.def = 1;
 Character.prototype.atk = 1;
 Character.prototype.direction = 's';
-
+Character.prototype.selected = false;
 Character.prototype.BitmapAnimation_initialize = Character.prototype.initialize;
 
 Character.prototype.initialize = function(img){
@@ -93,10 +93,12 @@ Character.prototype.draw = function(a, b){
 	var c = this.spriteSheet.getFrame(this.currentFrame);
 	var d=c.rect;
 	// draw maxHp in red;
-	a.save();
-	a.strokeStyle = '#0f0';
-	drawEllipse(a, -(c.regX/3)*2, -(c.regY/2), (d.width/3)*2, 20);
-	a.restore();
+	if(this.selected){
+		a.save();
+		a.strokeStyle = '#0f0';
+		drawEllipse(a, -(c.regX/3)*2, -(c.regY/2), (d.width/3)*2, 20);
+		a.restore();
+	}
 	this._normalizeFrame();
 	if(c!=null){
 		a.drawImage(c.image,d.x,d.y,d.width,d.height,-c.regX,-c.regY,d.width,d.height);
