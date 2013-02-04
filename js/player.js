@@ -13,11 +13,12 @@ Character.prototype.atk = 1;
 Character.prototype.direction = 's';
 Character.prototype.selected = false;
 Character.prototype.BitmapAnimation_initialize = Character.prototype.initialize;
+Character.prototype.z = 1;
 
 Character.prototype.initialize = function(img){
 	var localSpriteSheet = new createjs.SpriteSheet({
 				images:[img],
-				frames:{width:60, height:60, regX:30, regY:60},
+				frames:{width:60, height:60, regX:30, regY:45},
 				animations:{
 					stand_s:[0, 0],
 					stand_sw:[13, 13],
@@ -57,7 +58,7 @@ Character.prototype.initialize = function(img){
 	this.setDirection("s");
 	//this.x = 100;
 	//this.y = 300;
-
+	this.snapToPixel = true;
 }
 
 Character.prototype.state = 0;
@@ -93,6 +94,7 @@ Character.prototype.draw = function(a, b){
 	var c = this.spriteSheet.getFrame(this.currentFrame);
 	var d=c.rect;
 	// draw maxHp in red;
+	
 	if(this.selected){
 		a.save();
 		a.strokeStyle = '#0f0';
@@ -102,9 +104,44 @@ Character.prototype.draw = function(a, b){
 	this._normalizeFrame();
 	if(c!=null){
 		a.drawImage(c.image,d.x,d.y,d.width,d.height,-c.regX,-c.regY,d.width,d.height);
+		//a.fillText(this.y, 5, 0);
 		return true
 	}
 }
+
+Character.prototype.hitRect = function(rect){
+	var c = this.spriteSheet.getFrame(this.currentFrame);
+	var d = c.rect;
+	
+	var l1 = this.x - c.regX;
+	var t1 = this.y - c.regY;
+	var r1 = l1 + d.width;
+	var b1 = t1 + d.height;
+
+	var r2 = rect.x + rect.width;
+	var b2 = rect.y + rect.height;
+
+	if( b1 < rect.y || t1 > b2 ) return false;
+	if( r1 < rect.x || l1 > r2 ) return false;
+	return true;
+}
+
+/*
+function rectHit(rect1, rect2){
+	var r1 = rect1.x + rect1.width;
+	var b1 = rect1.y + rect1.height;
+	var r2 = rect2.x + rect2.width;
+	var b2 = rect2.y + rect2.height;
+
+
+	
+	if( b1 < rect2.y ) return false;
+	if( rect1.y > b2 ) return false;
+	if( r1 < rect2.x ) return false;
+	if( rect1.x > r2 ) return false;
+	return true;
+}
+*/
 
 Character.prototype.tick = function(){
 	if(this.state == 1){

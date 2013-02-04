@@ -8,12 +8,17 @@
 	<script type="text/javascript" src="js/ContentManager.js"></script>
 	<script type="text/javascript" src="js/player.js"></script>
 	<script type="text/javascript">
-		var stage, map, contentManager, player;
+		var stage, map, contentManager, player, layer1, fpstxt;
 		var Direction = ['s', 'sw', 'w', 'nw', 'n', 'ne', 'e', 'se'];
 		function init(){
 			stage = new createjs.Stage("mainCanvas");
-			map = new TileMap({stage : stage, width:50, height:37});
-			map.setMapChip('images/town01_a.gif');
+			map = new TileMap({stage : stage, width:50, height:37, z:0});
+			layer1 = new TileMap({stage:stage, width:50, height:37, z:1});
+			map.setMapChip('images/town01_a.png');
+			layer1.setMapChip('images/town01_a.png');
+
+			fpstxt = new createjs.Text('--- fps', "bold 14px Arial", 'white');
+			fpstxt.z = 9;
 			
 			contentManager = new ContentManager();
 			contentManager.SetDownloadComplated(startGame);
@@ -32,6 +37,8 @@
 
 		function keyproc(e){
 			console.log("key down : " + e.which);
+			player.selected = true;
+			
 			if( !e ) e = event;
 			var c = player.spriteSheet.getFrame(player.currentFrame);
 			console.log(c.regY + "/" + player.y);
@@ -70,6 +77,7 @@
 			if( !e ) e = event;
 			keys[e.keyCode] = 0;
 			player.state = 0;
+			player.selected = false;
 			player.gotoAndPlay('stand_' + player.direction);
 		}
 
@@ -77,22 +85,59 @@
 			//map.createRandom();
 			$.ajax({url:'datas/stage1.map', success:function(txt){
 				map.parseText(txt);
+				stage.addChild(map);
 				player = new Character(contentManager.imgDimus);
-				stage.addChild(player);
+				player.z = 1;
+				
 				player.x = 300;
 				player.y = 300;
 				createjs.Ticker.addListener(window);
-				createjs.Ticker.useRAF = true;
+				//createjs.Ticker.useRAF = true;
 				createjs.Ticker.setFPS(60);
 				stage.update();
+				stage.addChild(fpstxt);
 				document.onkeydown = keydownproc;
 				document.onkeyup = keyupproc;
 			}});
+
+			$.ajax({url:'datas/stage1_layer1.map', success:function(txt){
+				layer1.parseText(txt);
+				stage.addChild(player);
+				stage.addChild(layer1);
+			}});
 		}
 
+		function sortfunc(a, b){
+			if(a.z == b.z){
+				return a.y - b.y;
+			}else{
+				return a.z - b.z;
+			}
+		}
+
+		var fps = 0;
+		var lasty = 0;
+
 		function tick(){
+			var ch = false;
+			/*
+			if( lasty != player.y ){
+				for(var i=0;i<1850;i++){
+					if( layer1.tiles[i].no == null ) continue;
+					if( player.hitRect( layer1.tiles[i].getRect() ) ){
+						ch = true;
+						break;
+					}
+				}
+			}
+			*/
+			lasty = player.y;
+			if( ch ) stage.sortChildren(sortfunc);
+			fpstxt.text = Math.round(createjs.Ticker.getMeasuredFPS()) + " fps";
+			//fpstxt.update();
 			player.tick();
 			stage.update();
+			
 		}
 	</script>
 </head>

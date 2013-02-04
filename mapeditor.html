@@ -1,0 +1,119 @@
+<!doctype html5>
+<html>
+<head>
+	<script type="text/javascript" src="http://code.createjs.com/easeljs-0.5.0.min.js"></script>
+	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
+	<script type="text/javascript" src="js/TileMap.js"></script>
+	<script type="text/javascript">
+		var canv, stage, map, pal;
+		var w = 50, h=37;
+		var cur_no = 0;
+		var chips = new Image();
+		var layer1, layer2, layer3;
+		var mapchip;
+		var curLayer;
+		var init = function(){
+			stage = new createjs.Stage("main");
+			pal = new createjs.Stage("tileSelector");
+			map = new TileMap({stage:stage,width:w,height:h});
+			map.setMapChip('images/town01_a.png');
+			
+			curLayer = map;
+			
+			stage.addChild(map);
+
+			layer1 = new TileMap({stage:stage, width:w, height:h});
+			layer1.setMapChip('images/town01_a.png');
+			layer2 = new TileMap({stage:stage, width:w, height:h});
+			layer2.setMapChip('images/town01_a.png');
+			
+			//layer1.fill(0);
+
+			//stage.addChild(layer1);
+			//stage.addChild(layer2);
+
+			chips.src = "images/town01_a.png";
+			chips.onload = loaded;
+		}
+
+		var changeNo = function(ev){
+			var x = Math.floor(ev.stageX / 16);
+			var y = Math.floor(ev.stageY / 16);
+			console.log("x: " + x + " / y: " + y);
+			var tile = curLayer.tiles[x + (y*map.width)];
+			curLayer.map[x][y] = cur_no;
+			tile.no = cur_no;
+			var c = curLayer.sh.getFrame(cur_no);
+			tile.sourceRect = c.rect;
+		}
+
+		var selectNo = function(ev){
+			var x = Math.floor(ev.stageX / 16);
+			var y = Math.floor(ev.stageY / 16);
+			cur_no = x + (y*30);
+		}
+
+		var loaded = function(){
+			
+			map.createRandom();
+			layer1.createRandom();
+			layer2.createRandom();
+			map.fill(240);
+			layer1.fill(null);
+			layer2.fill(null);
+			mapchip = new createjs.Bitmap(chips);
+			createjs.Ticker.addListener(window);
+			createjs.Ticker.useRAF = true;
+			createjs.Ticker.setFPS(30);
+			stage.onMouseDown = changeNo;
+			pal.onMouseDown = selectNo;
+			stage.update();
+			pal.addChild(mapchip);
+		}
+
+		var tick = function(){
+			stage.update();
+			pal.update();
+		}
+
+		var changeLayer = function(v){
+			switch(parseInt(v, 10)){
+				case 0:
+					curLayer = map;
+					break;
+				case 1:
+					curLayer = layer1;
+					break;
+				case 2:
+					curLayer = layer2;
+					break;
+			}
+			console.log("layer : " + v);
+		}
+
+		var clearLayer = function(){
+			curLayer.fill(null);
+		}
+
+		var getResult = function(){
+			var tmp = curLayer.map.join('\n').replace(/,/g, ' ');
+			$("#results").val(tmp);
+		}
+	</script>
+	<style type="text/css">
+		#main, #tileSelector { border:solid 1px black; }
+	</style>
+</head>
+<body onload="init();">
+	<canvas id="main" width="800" height="600"></canvas>
+	<canvas id="tileSelector" width="480" height="256"></canvas>
+	<select size="2" onchange="changeLayer(this.value);">
+		<option value="2">layer 2</option>
+		<option value="1">layer 1</option>
+		<option value="0" selected>background</option>
+	</select>
+	<button onclick="clearLayer()" type="button">Clear</button>
+	<button onclick="getResult()" type="button">Result</button>
+	<textarea id='results'></textarea>
+</body>
+</html>
