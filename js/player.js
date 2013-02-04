@@ -28,29 +28,29 @@ Character.prototype.initialize = function(img){
 					stand_ne:[65, 65],
 					stand_e:[78,78],
 					stand_se:[91,91],
-					attack_s:[1,4,"stand_s",2],
-					attack_sw:[14,17, "stand_sw", 2],
-					attack_w:[26,29, "stand_w", 2],
-					attack_nw:[40,43, "stand_nw", 2],
-					attack_n:[53,56, "stand_n", 2],
-					attack_ne:[66,69, "stand_ne", 2],
-					attack_e:[79,82, "stand_e", 2],
-					attack_se:[92,95, "stand_se", 2],
+					attack_s:[1,4,"stand_s",1],
+					attack_sw:[14,17, "stand_sw", 1],
+					attack_w:[27,30, "stand_w", 1],
+					attack_nw:[40,43, "stand_nw", 1],
+					attack_n:[54,57, "stand_n", 1],
+					attack_ne:[66,69, "stand_ne", 1],
+					attack_e:[79,82, "stand_e", 1],
+					attack_se:[92,95, "stand_se", 1],
 					walk_s:{
 						frames:[0,5],
 						frequency:5
 					},
-					walk_sw:{frames:[13,19], frequency:5},
-					walk_w:{frames:[26,31], frequency:5},
-					walk_nw:{frames:[39,44], frequency:5},
-					walk_n:{frames:[53,57], frequency:5},
-					walk_ne:{frames:[65,70], frequency:5},
-					walk_e:{frames:[78,83], frequency:5},
-					walk_se:{frames:[91,96], frequency:5}
+					walk_sw:{frames:[14,18], frequency:2},
+					walk_w:{frames:[26,31], frequency:2},
+					walk_nw:{frames:[39,44], frequency:2},
+					walk_n:{frames:[53,57], frequency:2},
+					walk_ne:{frames:[65,70], frequency:2},
+					walk_e:{frames:[78,83], frequency:2},
+					walk_se:{frames:[91,96], frequency:2}
 				}
 			});
 
-	this.shadow = new createjs.Shadow("#000", 3, 2, 10);
+	//this.shadow = new createjs.Shadow("#000", 3, 2, 10);
 	this.name = "Player";
 	this.currentFrame = 0;
 	this.BitmapAnimation_initialize(localSpriteSheet);
@@ -62,6 +62,7 @@ Character.prototype.initialize = function(img){
 }
 
 Character.prototype.state = 0;
+Character.prototype.path = [];
 
 function drawEllipse(ctx, x, y, w, h) {
   var kappa = .5522848;
@@ -82,10 +83,10 @@ function drawEllipse(ctx, x, y, w, h) {
   ctx.stroke();
 }
 
-Character.prototype.setDirection = function(d){
+Character.prototype.setDirection = function(d, f){
 	this.direction = d;
-	console.log("dir : " + d);
-	this.gotoAndPlay("stand_" + d);
+	if(f !== false ){ this.gotoAndPlay("stand_" + d); console.log("stop"); }
+	else { console.log("keep"); }
 }
 
 Character.prototype.draw_origin = Character.prototype.draw;
@@ -143,32 +144,59 @@ function rectHit(rect1, rect2){
 }
 */
 
+Character.prototype.old_tick = Character.prototype.tick;
+Character.prototype.curTar = null;
 Character.prototype.tick = function(){
+	if( this.curTar == null && this.path.length > 0 ){
+		this.curTar = this.path.pop();
+		this.state = 1;
+	}
+
+	if( this.curTar ){
+		var tmp = '';
+		if( this.curTar.y + this.curTar.regY < this.y ){
+			tmp += 'n';
+		}else if(this.curTar.y + this.curTar.regY > this.y ){
+			tmp += 's';
+		}
+
+		if( this.curTar.x + this.curTar.regX < this.x ){
+			tmp += 'w';
+		}else if(this.curTar.x + this.curTar.regX > this.x){
+			tmp += 'e';
+		}
+		
+		if(tmp && this.direction != tmp){
+			this.setDirection(tmp, false);
+			this.gotoAndPlay('walk_' + tmp);
+		}
+	}
+
 	if(this.state == 1){
 		switch(this.direction){
 			case 's':
-				this.y+=2;
+				this.y+=1;
 				break;
 			case 'sw':
 				this.y++;
 				this.x--;
 				break;
 			case 'w':
-				this.x-=2;
+				this.x-=1;
 				break;
 			case 'nw':
 				this.y--;
 				this.x--;
 				break;
 			case 'n':
-				this.y-=2;
+				this.y-=1;
 				break;
 			case 'ne':
 				this.x++;
 				this.y--;
 				break;
 			case 'e':
-				this.x+=2;
+				this.x+=1;
 				break;
 			case 'se':
 				this.x++;
@@ -176,5 +204,23 @@ Character.prototype.tick = function(){
 				break;
 		}
 	}
+
+	if( this.curTar && this.curTar.x + this.curTar.regX == this.x && this.curTar.y + this.curTar.regY == this.y ){
+		this.curTar = null;
+		this.state = 0;
+		if( this.path.length == 0 ) this.gotoAndPlay('stand_' + this.direction);
+	}
+	//this._tick();
 }
 
+Character.prototype.attack_start = function(){
+	this.gotoAndPlay("attack_" + this.direction);
+	this.onAnimationEnd = this.attack_end;
+	this.state = 2;
+}
+
+Character.prototype.attack_end = function(){
+	this.state = 0;
+	this.gotoAndPlay("stand_" + this.direction);
+	this.onAnimationEnd = null;
+}

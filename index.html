@@ -7,15 +7,20 @@
 	<script type="text/javascript" src="js/TileMap.js"></script>
 	<script type="text/javascript" src="js/ContentManager.js"></script>
 	<script type="text/javascript" src="js/player.js"></script>
+	<script type="text/javascript" src="js/renderContainer.js"></script>
 	<script type="text/javascript">
-		var stage, map, contentManager, player, layer1, fpstxt;
+		var stage, map, contentManager, player, layer1, fpstxt, rCont, cloud, cloud2, elapsed;
 		var Direction = ['s', 'sw', 'w', 'nw', 'n', 'ne', 'e', 'se'];
 		function init(){
+			rCont = new RenderContainer();
 			stage = new createjs.Stage("mainCanvas");
-			map = new TileMap({stage : stage, width:50, height:37, z:0});
-			layer1 = new TileMap({stage:stage, width:50, height:37, z:1});
+			map = new TileMap({stage : rCont, width:50, height:37, z:0});
+			layer1 = new TileMap({stage: rCont, width:50, height:37, z:1});
 			map.setMapChip('images/town01_a.png');
 			layer1.setMapChip('images/town01_a.png');
+
+
+			stage.onMouseDown = setTar;
 
 			fpstxt = new createjs.Text('--- fps', "bold 14px Arial", 'white');
 			fpstxt.z = 9;
@@ -23,6 +28,141 @@
 			contentManager = new ContentManager();
 			contentManager.SetDownloadComplated(startGame);
 			contentManager.StartDownload();
+		}
+
+		function setTar(e){
+				var tx = Math.floor(e.stageX / 16);
+				var ty = Math.floor(e.stageY / 16);
+				var t = map.tiles[tx + (ty*50)];
+				player.path = [];
+				console.log("click : " + tx + " / " + ty);
+				var r = astar(Math.floor(player.x /16), Math.floor(player.y / 16), tx, ty);
+				if( r ) {
+					console.log("Path length : " + r.length );
+					for(var i in r ){
+						player.path.push(r[i]);
+					}
+				}
+		}
+
+		function findlist(arr, xx, yy){
+			for(var i in arr){
+				if( arr[i].tileX == xx && arr[i].tileY == yy ){
+					return i;
+				}
+			}
+			return -1;
+		}
+
+		function astar(sx, sy, tx, ty){
+			console.log("Start find");
+			var openlist = [];
+			var closelist = [];
+
+			var snode = map.tiles[sx + (sy*50)];
+			var cnode = null;
+			closelist.push(snode);
+
+			for(var i=Math.max(sy-1, 0),l=Math.min(sy+2,36);i<l;i++){
+				for(var j=Math.max(sx-1,0),l2=Math.min(sx+2,50);j<l2;j++){
+					if( i == sy && j == sx ) continue;
+					cnode = map.tiles[j + (i*50)];
+					cnode.pnode = snode;
+					cnode.G = 0;
+					if( sx != j && sy != i ){
+						cnode.G = 14;
+					}else{
+						cnode.G = 10;
+					}
+					cnode.H = Math.abs(sx - j) + Math.abs(sy - i);
+					cnode.F = cnode.G + cnode.H;
+					openlist.push( cnode );
+				}
+			}
+			
+			var min = 9999999999;
+			var tidx = -1;
+			var tnode = null;
+			var found = false;
+			while(openlist.length > 0 && !found ){
+				if(found) break;
+				cnode = null;
+				min = 99999999;
+				for(var i=0,l=openlist.length;i<l;i++){
+					if( openlist[i].F < min ){
+						min = openlist[i].F;
+						cnode = openlist[i];
+					}
+				}
+				if( cnode == null ) {
+					break;
+				}
+				tidx = openlist.indexOf(cnode);
+				openlist.splice(tidx, 1);
+				closelist.push(cnode);
+
+
+				for(var i=Math.max(cnode.tileY-1,0),l=Math.min(cnode.tileY+2,36);i<l;i++){
+					if( found ) break;
+					for(var j=Math.max(cnode.tileX-1,0),l2=Math.min(cnode.tileX+2,50);j<l2;j++){
+						if( found ) break;
+						if( cnode.tileX == j && cnode.tileY == i ){
+							continue;
+
+						}
+						tnode = map.tiles[j + (i*50)];
+						if( tnode.no != 240 || layer1.tiles[j + (i*50)].no != null ){
+							continue;
+						}
+						if( findlist(closelist, j, i) > -1 ){
+							continue;
+						}
+						if( findlist(openlist, j, i) > -1 ){
+							var tmpG = cnode.G;
+							tmpG += (tnode.tileX != cnode.tileX && tnode.tileY != cnode.tileY)?14:10;
+							if( tmpG < tnode.G ){
+								tnode.pnode = cnode;
+								tnode.G = tmpG;
+								tnode.F = tnode.G + tnode.H;
+							}else{
+								
+							}
+						}else{
+							tnode.pnode = cnode;
+							tnode.G = cnode.G;
+							if( cnode.tileX != tnode.tileX && cnode.tileY != tnode.tileY ){
+								tnode.G += 14;
+							}else{
+								tnode.G += 10;
+							}
+							tnode.H = Math.abs(j - tx) + Math.abs(i - ty);
+							tnode.F = tnode.G + tnode.H;
+							openlist.push(tnode);
+							if( tnode.tileX == tx && tnode.tileY == ty ){
+								found = true;
+								break;
+							}
+						}
+					}
+				}
+
+				if( found ){
+					break;
+				}
+			}
+			var res = [];
+			if( found ){
+				console.log("OK");
+				while(tnode.pnode){
+					res.push(tnode);
+					cnode = tnode;
+					tnode =tnode.pnode;
+					cnode.pnode = null;
+				}
+			}
+			openlist = null;
+			closelist = null;
+			return res;
 		}
 		
 		var keys = {};
@@ -38,14 +178,16 @@
 		function keyproc(e){
 			console.log("key down : " + e.which);
 			player.selected = true;
+			if( this.state == 2 ) return;
 			
 			if( !e ) e = event;
 			var c = player.spriteSheet.getFrame(player.currentFrame);
 			console.log(c.regY + "/" + player.y);
 			switch(e.which){
 				case 32:
-					player.gotoAndPlay("attack_" + player.direction);
-					player.state = 2;
+					//player.gotoAndPlay("attack_" + player.direction);
+					//player.state = 2;
+					player.attack_start();
 					break;
 				case 13:
 					player.setDirection(Direction[(Direction.indexOf(player.direction) + 1)%8]);
@@ -76,6 +218,7 @@
 		function keyupproc(e){
 			if( !e ) e = event;
 			keys[e.keyCode] = 0;
+			if( e.keyCode == 32 ) return;
 			player.state = 0;
 			player.selected = false;
 			player.gotoAndPlay('stand_' + player.direction);
@@ -85,25 +228,36 @@
 			//map.createRandom();
 			$.ajax({url:'datas/stage1.map', success:function(txt){
 				map.parseText(txt);
-				stage.addChild(map);
+				//stage.addChild(map);
+				//rCont.addChild(map.tiles);
 				player = new Character(contentManager.imgDimus);
 				player.z = 1;
-				
-				player.x = 300;
-				player.y = 300;
+				player.x = 32;
+				player.y = 240;
 				createjs.Ticker.addListener(window);
-				//createjs.Ticker.useRAF = true;
+				createjs.Ticker.useRAF = true;
 				createjs.Ticker.setFPS(60);
-				stage.update();
-				stage.addChild(fpstxt);
 				document.onkeydown = keydownproc;
 				document.onkeyup = keyupproc;
 			}});
 
 			$.ajax({url:'datas/stage1_layer1.map', success:function(txt){
+				layer1.z = 1;
 				layer1.parseText(txt);
-				stage.addChild(player);
-				stage.addChild(layer1);
+				rCont.addChild(player);
+				//rCont.addChild(layer1.tiles);
+				cloud = new createjs.Bitmap(contentManager.imgCloud);
+				cloud2 = cloud.clone();
+				cloud.z = 3;
+				cloud2.z = 4;
+				cloud2.x = -800;
+				//rCont.addChild(cloud);
+				//rCont.addChild(cloud2);
+				stage.addChild(rCont);
+				stage.update();
+				stage.addChild(fpstxt);
+				//stage.addChild(player);
+				//stage.addChild(layer1);
 			}});
 		}
 
@@ -117,29 +271,23 @@
 
 		var fps = 0;
 		var lasty = 0;
-
+		elapsed = 0;
 		function tick(){
-			var ch = false;
-			/*
-			if( lasty != player.y ){
-				for(var i=0;i<1850;i++){
-					if( layer1.tiles[i].no == null ) continue;
-					if( player.hitRect( layer1.tiles[i].getRect() ) ){
-						ch = true;
-						break;
-					}
-				}
-			}
-			*/
-			lasty = player.y;
-			if( ch ) stage.sortChildren(sortfunc);
+			//cloud.x++;
+			//cloud2.x++;
+			//if(cloud.x > 800) cloud.x = -800;
+			//if(cloud2.x > 800) cloud2.x = -800;
 			fpstxt.text = Math.round(createjs.Ticker.getMeasuredFPS()) + " fps";
 			//fpstxt.update();
-			player.tick();
+			//player.tick();
+			//player.advance();
+			rCont.tick();
 			stage.update();
 			
 		}
 	</script>
+	<style type="text/css">
+	</style>
 </head>
 <body onload="init();">
 	<canvas id="mainCanvas" width="800" height="600">

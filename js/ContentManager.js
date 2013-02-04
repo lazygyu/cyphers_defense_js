@@ -1,6 +1,6 @@
 function ContentManager(){
 	var ondownloadcompleted;
-	var NUM_ELEMENTS_TO_DOWNLOAD = 2;
+	var NUM_ELEMENTS_TO_DOWNLOAD = 3;
 
 	this.SetDownloadComplated = function(cb){
 		ondownloadcompleted = cb;
@@ -8,12 +8,14 @@ function ContentManager(){
 
 	this.imgDimus = new Image();
 	this.imgMapChip = new Image();
+	this.imgCloud = new Image();
 
 	var numImagesLoaded = 0;
 
 	this.StartDownload = function(){
 		SetDownloadParameters(this.imgDimus, 'images/dimus.png', handleImageLoad, handleImageError);
 		SetDownloadParameters(this.imgMapChip, 'images/town01_a.gif', handleImageLoad, handleImageError);
+		SetDownloadParameters(this.imgCloud, 'images/cloud.png', handleImageLoad, handleImageError);
 	}
 
 	function SetDownloadParameters(imgElement, url, loadedHandler, errorHandler){

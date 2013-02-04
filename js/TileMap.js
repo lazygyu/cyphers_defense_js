@@ -47,7 +47,7 @@ TileMap.prototype.createRandom = function(){
 			tmpTile.sourceRect = obj.rect;
 			tmpTile.z = this.z;
 			this.tiles[i + (j*this.width)] = tmpTile;
-			//this.stage.addChild(tmpTile);
+			this.stage.addChild(tmpTile);
 		}
 	}
 }
@@ -71,7 +71,7 @@ TileMap.prototype.parseText = function(txt){
 			}
 			tmpTile.z = this.z;
 			this.tiles[i + (j*this.width)] = tmpTile;
-			//this.stage.addChild(tmpTile);
+			this.stage.addChild(tmpTile);
 		}
 	}
 }
@@ -120,6 +120,8 @@ Tile.prototype.Bitmap_initialize = Tile.prototype.initialize;
 Tile.prototype.no = 0;
 Tile.prototype.regX = 8;
 Tile.prototype.regY = 8;
+Tile.prototype.tileX = 0;
+Tile.prototype.tileY = 0;
 
 Tile.prototype.initialize = function(texture, collision, x, y){
 	if( texture != null ){
@@ -129,6 +131,8 @@ Tile.prototype.initialize = function(texture, collision, x, y){
 		this.empty = true;
 	}
 	this.Collision = collision;
+	this.tileX = x;
+	this.tileY = y;
 	this.x = x * this.Width;
 	this.y = y * this.Height;
 	this.snapToPixel = true;
