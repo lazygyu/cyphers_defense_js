@@ -2,6 +2,7 @@
 <html>
 <head>
 	<title>HTML5 demo</title>
+	<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
 	<script type="text/javascript" src="http://code.createjs.com/easeljs-0.5.0.min.js"></script>
 	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
 	<script type="text/javascript" src="js/TileMap.js"></script>
@@ -9,8 +10,13 @@
 	<script type="text/javascript" src="js/player.js"></script>
 	<script type="text/javascript" src="js/renderContainer.js"></script>
 	<script type="text/javascript">
-		var stage, map, contentManager, player, layer1, fpstxt, rCont, cloud, cloud2, elapsed;
+		var stage, map, contentManager, layer1, fpstxt, rCont, cloud, cloud2, elapsed;
+		var chrs = [];
 		var Direction = ['s', 'sw', 'w', 'nw', 'n', 'ne', 'e', 'se'];
+		var ustate = 0;
+		var spoint = null;
+		var cursor = null;
+
 		function init(){
 			rCont = new RenderContainer();
 			stage = new createjs.Stage("mainCanvas");
@@ -20,149 +26,251 @@
 			layer1.setMapChip('images/town01_a.png');
 
 
-			stage.onMouseDown = setTar;
+			stage.onMouseDown = mouseDownHandler;
+			stage.onMouseUp = mouseUpHandler;
+			stage.onMouseMove = mouseMoveHandler;
+			stage.snapToPixelEnabled = true;
 
 			fpstxt = new createjs.Text('--- fps', "bold 14px Arial", 'white');
 			fpstxt.z = 9;
+
+			cursor = new createjs.Shape();
+			cursor.z = 10;
 			
+			rCont.addChild(cursor);
+
 			contentManager = new ContentManager();
 			contentManager.SetDownloadComplated(startGame);
 			contentManager.StartDownload();
 		}
 
+		function canmovetile(x, y){
+			var tx = Math.floor(x/1);
+			var ty = Math.floor(y/1);
+			for(var i in chrs){
+				if( chrs[i].curTar && chrs[i].curTar.tileX == tx && chrs[i].curTar.tileY == ty){
+					return chrs[i].movestate;
+				}else if(  Math.floor(chrs[i].x/16) == tx && Math.floor(chrs[i].y/16) == ty){
+					return chrs[i].movestate;
+				}
+			}
+			return null;
+		}
+
+		function mouseDownHandler(e){
+			ustate = 1;
+			spoint = {x:e.stageX, y:e.stageY};
+			
+		}
+
+		function pointInRect(pt, rect){
+			if( pt.x < rect.x || pt.x > rect.x + rect.width ) return false;
+			if( pt.y < rect.y || pt.y > rect.y + rect.width ) return false;
+			return true;
+		}
+
+		function rectHit(rect1, rect2){
+			var r1 = rect1.x + rect1.width;
+			var r2 = rect2.x + rect2.width;
+			var b1 = rect1.y + rect1.height;
+			var b2 = rect2.y + rect2.height;
+
+			if( r1 < rect2.x || r2 < rect1.x ) return false;
+			if( b1 < rect2.y || b2 < rect1.y ) return false;
+
+			return true;
+		}
+
+		function mouseMoveHandler(e){
+			if(ustate == 1){
+				var epoint = {x:e.stageX, y:e.stageY};
+				var rect = new createjs.Rectangle(spoint.x, spoint.y, epoint.x - spoint.x, epoint.y - spoint.y);
+				cursor.graphics.clear().beginStroke('#FF0').rect(rect.x, rect.y, rect.width, rect.height);
+			}
+		}
+
+		function mouseUpHandler(e){
+			var epoint = {x:e.stageX, y:e.stageY};
+			var rect = new createjs.Rectangle(spoint.x, spoint.y, epoint.x - spoint.x, epoint.y - spoint.y);
+			var is_select_action = false;
+			var toUnSelect = [];
+			if( ustate == 1 && (rect.width > 5 || rect.height > 5)){
+				for(var i in chrs){
+					if( rectHit(chrs[i].getBound(), rect) ){
+						chrs[i].selected = true;
+						is_select_action = true;
+					}else{
+						toUnSelect.push(chrs[i]);
+					}
+				}
+			}else if(ustate == 1){
+				for(var i in chrs){
+					var p = chrs[i].globalToLocal(e.stageX, e.stageY);
+					if( chrs[i].hitTest(p.x, p.y) && !is_select_action ){
+						chrs[i].selected = true;
+						is_select_action = true;
+						
+					}else{
+						toUnSelect.push(chrs[i]);
+					}
+				}
+			}
+			if( !is_select_action && rect.width < 5 && rect.height < 5 ){
+				setTar(e);
+			}else{
+				for(var i in toUnSelect){
+					toUnSelect[i].selected = false;
+				}
+			}
+			cursor.graphics.clear();
+			spoint = null;
+			ustate = 0;
+		}
+
 		function setTar(e){
-				var tx = Math.floor(e.stageX / 16);
-				var ty = Math.floor(e.stageY / 16);
-				var t = map.tiles[tx + (ty*50)];
-				player.path = [];
-				console.log("click : " + tx + " / " + ty);
-				var r = astar(Math.floor(player.x /16), Math.floor(player.y / 16), tx, ty);
-				if( r ) {
-					console.log("Path length : " + r.length );
-					for(var i in r ){
-						player.path.push(r[i]);
+				
+		/*
+				console.log(
+					"x : " + Math.floor(e.stageX/16) + 
+					" y : " + Math.floor(e.stageY/16) + 
+					" no : " + map.tiles[Math.floor(e.stageX/16) + (Math.floor(e.stageY/16)*50)].no +
+					" no2 : " + layer1.tiles[Math.floor(e.stageX/16) + (Math.floor(e.stageY/16)*50)].no
+					);
+		
+				var sdo = false;
+				for(var i in chrs){
+					var player = chrs[i];
+					//player.selected = false;
+					var p = player.globalToLocal(e.stageX, e.stageY);
+					if( player.hitTest(p.x, p.y) ){
+						
+						for(var j in chrs){
+							chrs[j].selected = false;
+						}
+						player.selected = true;
+						sdo = true;
+						return true;
+					}
+				}
+		*/
+				var selected_idx = 0;
+				for(var i in chrs){
+					var player = chrs[i];
+					if( player.selected ){
+						var tx = Math.floor(e.stageX / 16);
+						var ty = Math.floor(e.stageY / 16);
+						var t = map.tiles[tx + (ty*50)];
+						player.path = [];
+						//console.log("click : " + tx + " / " + ty);
+						var r = astar(Math.floor(player.x /16), Math.floor(player.y / 16), tx + selected_idx, ty);
+						selected_idx++;
+						if( r ) {
+							//console.log("Path length : " + r.length );
+							player.curTar = null;
+							player.path = [];
+							player.path = r;
+						}
 					}
 				}
 		}
 
-		function findlist(arr, xx, yy){
-			for(var i in arr){
-				if( arr[i].tileX == xx && arr[i].tileY == yy ){
-					return i;
-				}
-			}
-			return -1;
+		function Fsort(a, b){
+			if( a.F == b.F ) return a.G - b.G;
+			return a.F - b.F;
+		}
+
+		function getNeighbor(arr, x, y){
+			var ret = [];
+
+			if( arr[x-1] && arr[x-1][y] ) ret.push(arr[x-1][y]);
+			if( arr[x] && arr[x][y-1] ) ret.push(arr[x][y-1]);
+			if( arr[x+1] && arr[x+1][y] ) ret.push(arr[x+1][y]);
+			if( arr[x] && arr[x][y+1] ) ret.push(arr[x][y+1]);
+			if( arr[x-1] && arr[x-1][y-1] ) ret.push(arr[x-1][y-1]);
+			if( arr[x+1] && arr[x+1][y-1] ) ret.push(arr[x+1][y-1]);
+			if( arr[x+1] && arr[x+1][y+1] ) ret.push(arr[x+1][y+1]);
+			if( arr[x-1] && arr[x-1][y+1] ) ret.push(arr[x-1][y+1]);
+
+			return ret;
+
 		}
 
 		function astar(sx, sy, tx, ty){
-			console.log("Start find");
+			//console.log("Start find");
 			var openlist = [];
-			var closelist = [];
+			var nodemap = [];
+			for(var i=0;i<50;i++){
+				nodemap[i] = [];
+				for(var j=0;j<36;j++){
+					nodemap[i][j] = {tileX:i, tileY:j, x:i*16, y:j*16, no:map.tiles[i+(j*50)].no, no2:layer1.tiles[i+(j*50)].no, pnode:null, F:null, G:null, H:null, closed:false, visited:false};
+				}
+			}
 
-			var snode = map.tiles[sx + (sy*50)];
+			var snode = nodemap[sx][sy];
 			var cnode = null;
-			closelist.push(snode);
+			var neighbor = null;
+			openlist.push(snode);
+			while(openlist.length > 0){
+				cnode = openlist.shift();
 
-			for(var i=Math.max(sy-1, 0),l=Math.min(sy+2,36);i<l;i++){
-				for(var j=Math.max(sx-1,0),l2=Math.min(sx+2,50);j<l2;j++){
-					if( i == sy && j == sx ) continue;
-					cnode = map.tiles[j + (i*50)];
-					cnode.pnode = snode;
-					cnode.G = 0;
-					if( sx != j && sy != i ){
-						cnode.G = 14;
-					}else{
-						cnode.G = 10;
+				// 길 찾은 경우
+				if( cnode.tileX == tx && cnode.tileY == ty ){
+					var ret = [];
+					while(cnode.pnode){
+						ret.push(cnode);
+						cnode = cnode.pnode;
 					}
-					cnode.H = Math.abs(sx - j) + Math.abs(sy - i);
-					cnode.F = cnode.G + cnode.H;
-					openlist.push( cnode );
+					return ret;
 				}
-			}
-			
-			var min = 9999999999;
-			var tidx = -1;
-			var tnode = null;
-			var found = false;
-			while(openlist.length > 0 && !found ){
-				if(found) break;
-				cnode = null;
-				min = 99999999;
-				for(var i=0,l=openlist.length;i<l;i++){
-					if( openlist[i].F < min ){
-						min = openlist[i].F;
-						cnode = openlist[i];
+
+				cnode.closed = true;
+
+				neighbor = getNeighbor(nodemap, cnode.tileX, cnode.tileY);
+				for(var i in neighbor){
+					tnode = neighbor[i];
+					if( tnode.closed || (tnode.no != 240 && tnode.no != 10)  || tnode.no2 != null || canmovetile(tnode.tileX, tnode.tileY) == 2  ){
+						continue;
 					}
-				}
-				if( cnode == null ) {
-					break;
-				}
-				tidx = openlist.indexOf(cnode);
-				openlist.splice(tidx, 1);
-				closelist.push(cnode);
+					var already_visited = tnode.visited;
+					var tmpG = cnode.G;
+					tmpG += (cnode.tileX != tnode.tileX && cnode.tileY != cnode.tileY)?14:10;
 
-
-				for(var i=Math.max(cnode.tileY-1,0),l=Math.min(cnode.tileY+2,36);i<l;i++){
-					if( found ) break;
-					for(var j=Math.max(cnode.tileX-1,0),l2=Math.min(cnode.tileX+2,50);j<l2;j++){
-						if( found ) break;
-						if( cnode.tileX == j && cnode.tileY == i ){
-							continue;
-
-						}
-						tnode = map.tiles[j + (i*50)];
-						if( tnode.no != 240 || layer1.tiles[j + (i*50)].no != null ){
-							continue;
-						}
-						if( findlist(closelist, j, i) > -1 ){
-							continue;
-						}
-						if( findlist(openlist, j, i) > -1 ){
-							var tmpG = cnode.G;
-							tmpG += (tnode.tileX != cnode.tileX && tnode.tileY != cnode.tileY)?14:10;
-							if( tmpG < tnode.G ){
-								tnode.pnode = cnode;
-								tnode.G = tmpG;
-								tnode.F = tnode.G + tnode.H;
-							}else{
-								
-							}
-						}else{
-							tnode.pnode = cnode;
-							tnode.G = cnode.G;
-							if( cnode.tileX != tnode.tileX && cnode.tileY != tnode.tileY ){
-								tnode.G += 14;
-							}else{
-								tnode.G += 10;
-							}
-							tnode.H = Math.abs(j - tx) + Math.abs(i - ty);
-							tnode.F = tnode.G + tnode.H;
+				 	if( !tnode.visited || tmpG < tnode.G){
+						tnode.visited = true;
+						tnode.pnode = cnode;
+						tnode.H = tnode.H || (Math.abs(tx - tnode.tileX) + Math.abs(ty-tnode.tileY));
+						tnode.G = tmpG;
+						tnode.F = tnode.G + tnode.H;
+						
+						if( !already_visited ){
 							openlist.push(tnode);
-							if( tnode.tileX == tx && tnode.tileY == ty ){
-								found = true;
-								break;
-							}
+							openlist.sort(Fsort);
+						}else{
+							openlist.sort(Fsort);
 						}
-					}
-				}
 
-				if( found ){
-					break;
+					}
+					/*
+					if( openlist.indexOf(tnode) > -1 ){
+						if( tmpG <= tnode.G ){
+							tnode.G = tmpG;
+							tnode.F = tnode.G + tnode.H;
+							openlist.sort(Fsort);
+						}
+					}else if(!tnode.closed) {
+						tnode.pnode = cnode;
+						tnode.G = cnode.G;
+						tnode.G += (cnode.tileX != tnode.tileX && cnode.tileY != cnode.tileY)?14:10;
+						tnode.H = Math.abs(tx - tnode.tileX) + Math.abs(ty - tnode.tileY);
+						tnode.F = tnode.G + tnode.H;
+						tnode.visited = true;
+						openlist.push(tnode);
+					}
+					*/
 				}
 			}
-			var res = [];
-			if( found ){
-				console.log("OK");
-				while(tnode.pnode){
-					res.push(tnode);
-					cnode = tnode;
-					tnode =tnode.pnode;
-					cnode.pnode = null;
-				}
-			}
-			openlist = null;
-			closelist = null;
-			return res;
+			return null;
+
 		}
 		
 		var keys = {};
@@ -176,13 +284,13 @@
 		}
 
 		function keyproc(e){
-			console.log("key down : " + e.which);
-			player.selected = true;
+			//console.log("key down : " + e.which);
+			/*
 			if( this.state == 2 ) return;
 			
 			if( !e ) e = event;
 			var c = player.spriteSheet.getFrame(player.currentFrame);
-			console.log(c.regY + "/" + player.y);
+			//console.log(c.regY + "/" + player.y);
 			switch(e.which){
 				case 32:
 					//player.gotoAndPlay("attack_" + player.direction);
@@ -213,6 +321,7 @@
 					player.state = 1;
 					break;
 			}
+			*/
 		}
 
 		function keyupproc(e){
@@ -220,7 +329,7 @@
 			keys[e.keyCode] = 0;
 			if( e.keyCode == 32 ) return;
 			player.state = 0;
-			player.selected = false;
+			
 			player.gotoAndPlay('stand_' + player.direction);
 		}
 
@@ -230,10 +339,19 @@
 				map.parseText(txt);
 				//stage.addChild(map);
 				//rCont.addChild(map.tiles);
-				player = new Character(contentManager.imgDimus);
+				var player = new Dimus(contentManager.imgDimus, stage);
 				player.z = 1;
 				player.x = 32;
 				player.y = 240;
+				chrs.push(player);
+
+				player = new Dimus(contentManager.imgDimus, stage);
+				player.z = 1;
+				player.x = 302;
+				player.y = 40;
+				chrs.push(player);
+
+
 				createjs.Ticker.addListener(window);
 				createjs.Ticker.useRAF = true;
 				createjs.Ticker.setFPS(60);
@@ -244,20 +362,21 @@
 			$.ajax({url:'datas/stage1_layer1.map', success:function(txt){
 				layer1.z = 1;
 				layer1.parseText(txt);
-				rCont.addChild(player);
+				rCont.addChild(chrs);
 				//rCont.addChild(layer1.tiles);
 				cloud = new createjs.Bitmap(contentManager.imgCloud);
 				cloud2 = cloud.clone();
 				cloud.z = 3;
 				cloud2.z = 4;
 				cloud2.x = -800;
-				//rCont.addChild(cloud);
-				//rCont.addChild(cloud2);
+				rCont.addChild(cloud);
+				rCont.addChild(cloud2);
 				stage.addChild(rCont);
-				stage.update();
 				stage.addChild(fpstxt);
 				//stage.addChild(player);
 				//stage.addChild(layer1);
+				rCont.layers[0].isOffscreen = true;
+				
 			}});
 		}
 
@@ -273,17 +392,45 @@
 		var lasty = 0;
 		elapsed = 0;
 		function tick(){
-			//cloud.x++;
-			//cloud2.x++;
-			//if(cloud.x > 800) cloud.x = -800;
-			//if(cloud2.x > 800) cloud2.x = -800;
+			var tpt = null;
+			for(var i in chrs){
+				tpt = chrs[i].globalToLocal(stage.mouseX, stage.mouseY);
+				if( chrs[i].hitTest(tpt.x, tpt.y) ){
+					chrs[i].aura(true);
+				}else{
+					chrs[i].aura(false);
+				}
+			}
+			elapsed = createjs.Ticker.getTime(false) - elapsed;
+			cloud.x++;
+			cloud2.x++;
+			if(cloud.x > 800) cloud.x = -800;
+			if(cloud2.x > 800) cloud2.x = -800;
 			fpstxt.text = Math.round(createjs.Ticker.getMeasuredFPS()) + " fps";
 			//fpstxt.update();
 			//player.tick();
 			//player.advance();
-			rCont.tick();
+			rCont.tick(elapsed);
 			stage.update();
 			
+		}
+
+		function addDimus(){
+			var player = new Character(contentManager.imgDimus, stage);
+			player.z = 1;
+			player.x = 502;
+			player.y = 70;
+			chrs.push(player);
+			rCont.addChild(player);
+		}
+
+		function addRin(){
+			var player = new Rin(contentManager.imgRin, stage);
+			player.z = 1;
+			player.x = 502;
+			player.y = 70;
+			chrs.push(player);
+			rCont.addChild(player);
 		}
 	</script>
 	<style type="text/css">
@@ -293,5 +440,19 @@
 	<canvas id="mainCanvas" width="800" height="600">
 		This page needs a browser that support the canvas.
 	</canvas>
+	<button type="button" onclick="addDimus();">다이무스 더!</button>
+	<button type="button" onclick="addRin();">추가캐릭 테스트</button>
+	<div>
+	<h4>To-do</h4>
+	<ul>
+		<li>로딩 끝날때까지 기다렸다가 시작하기</li>
+		<li><s>이동시 맵 타일상의 유닛도 체크(겹치지 않게)</s></li>
+		<li><s>정지된 유닛은 장애물로 인식 / 이동중인 유닛은 잠깐 대기</s></li>
+		<li>목적지가 막혀있을 경우 그 근처로 목적지를 수정(부대 이동시 특히 필요함)</li>
+		<li>공격 기능</li>
+		<li>가능하면 줌인/줌아웃을 넣어볼까..</li>
+		<li>뷰포트 기능 넣기</li>
+	</ul>
+	</div>
 </body>
 </html>

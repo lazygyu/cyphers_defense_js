@@ -4,8 +4,9 @@
 	<script type="text/javascript" src="http://code.createjs.com/easeljs-0.5.0.min.js"></script>
 	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
 	<script type="text/javascript" src="js/TileMap.js"></script>
+	<script type="text/javascript" src="js/renderContainer.js"></script>
 	<script type="text/javascript">
-		var canv, stage, map, pal;
+		var canv, stage, map, pal, rCont;
 		var w = 50, h=37;
 		var cur_no = 0;
 		var chips = new Image();
@@ -15,23 +16,20 @@
 		var init = function(){
 			stage = new createjs.Stage("main");
 			pal = new createjs.Stage("tileSelector");
-			map = new TileMap({stage:stage,width:w,height:h});
+			
+			rCont = new RenderContainer();
+			rCont.x = 8;
+			rCont.y = 8;
+			map = new TileMap({stage:rCont,width:w,height:h,z:0});
 			map.setMapChip('images/town01_a.png');
-			
-			curLayer = map;
-			
-			stage.addChild(map);
+			stage.addChild(rCont);
 
-			layer1 = new TileMap({stage:stage, width:w, height:h});
+			layer1 = new TileMap({stage:rCont, width:w, height:h,z:1});
 			layer1.setMapChip('images/town01_a.png');
-			layer2 = new TileMap({stage:stage, width:w, height:h});
+			layer2 = new TileMap({stage:rCont, width:w, height:h,z:2});
 			layer2.setMapChip('images/town01_a.png');
 			
-			//layer1.fill(0);
-
-			//stage.addChild(layer1);
-			//stage.addChild(layer2);
-
+			curLayer = map;
 			chips.src = "images/town01_a.png";
 			chips.onload = loaded;
 		}
@@ -39,12 +37,7 @@
 		var changeNo = function(ev){
 			var x = Math.floor(ev.stageX / 16);
 			var y = Math.floor(ev.stageY / 16);
-			console.log("x: " + x + " / y: " + y);
-			var tile = curLayer.tiles[x + (y*map.width)];
-			curLayer.map[x][y] = cur_no;
-			tile.no = cur_no;
-			var c = curLayer.sh.getFrame(cur_no);
-			tile.sourceRect = c.rect;
+			curLayer.setTile(x, y, cur_no);
 		}
 
 		var selectNo = function(ev){
@@ -72,6 +65,7 @@
 		}
 
 		var tick = function(){
+			rCont.tick();
 			stage.update();
 			pal.update();
 		}

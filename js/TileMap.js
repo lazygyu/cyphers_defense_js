@@ -61,13 +61,13 @@ TileMap.prototype.parseText = function(txt){
 			var tmpTile = new Tile(this.mapchip, null, i, j);
 			var obj = this.sh.getFrame(this.map[i][j]);
 			tmpTile.no = this.map[i][j];
-			//console.log(this.map[i][j]);
+			////console.log(this.map[i][j]);
 			try{
 				tmpTile.sourceRect = obj.rect;
-				//console.log((i + (j*this.width)) + "i : " + i + " / j : " + j + " / map : " + this.map[i][j]);
+				////console.log((i + (j*this.width)) + "i : " + i + " / j : " + j + " / map : " + this.map[i][j]);
 			}catch(er){
 				tmpTile.no = null;
-				//console.log((i + (j*this.width)) + "i : " + i + " / j : " + j + " / map : " + this.map[i][j]);
+				////console.log((i + (j*this.width)) + "i : " + i + " / j : " + j + " / map : " + this.map[i][j]);
 			}
 			tmpTile.z = this.z;
 			this.tiles[i + (j*this.width)] = tmpTile;
@@ -81,13 +81,13 @@ TileMap.prototype.setMapChip = function(uri){
 	this.mapchip.src = uri;
 	var that = this;
 	this.mapchip.onload = function(){
-		console.log("mapchip [" + uri + "] has loaded.");
+		//console.log("mapchip [" + uri + "] has loaded.");
 		that.sh = new createjs.SpriteSheet({
 				images:[that.mapchip],
 				frames:{width:16, height:16, regX:0, regY:0}
 			});
 		that.sh.onComplete = function(){
-			console.log("SpriteSheet created.");
+			//console.log("SpriteSheet created.");
 		}
 	}
 }
@@ -100,7 +100,7 @@ TileMap.prototype.setTile = function(x, y, no){
 }
 
 TileMap.prototype.draw = function(a,b){
-	//console.log(this.tiles.length);
+	////console.log(this.tiles.length);
 	for(var i=0;i<this.tiles.length;i++){
 		if(this.tiles[i].no == null ) continue;
 		a.save();

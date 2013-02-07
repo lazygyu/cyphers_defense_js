@@ -6,9 +6,9 @@ RenderContainer.prototype.orderLayer = 1;
 RenderContainer.prototype.visible = true;
 
 RenderContainer.prototype.addChild = function(obj){
-	console.log("add");
+	//console.log("add");
 	if(obj == null) return obj;
-	if( typeof(obj) == "array"){
+	if( typeof(obj.length) != "undefined"){
 		for(var i in obj){
 			if(obj[i].z == undefined || obj[i].z == null ) obj[i].z = 0;
 			if( this.layers[obj[i].z] == undefined) this.layers[obj[i].z] = new createjs.Container();
@@ -25,16 +25,34 @@ RenderContainer.prototype.draw_old = RenderContainer.prototype.draw = RenderCont
 
 RenderContainer.prototype.draw = function(a, b){
 	var obj=null;
+	a.save();
+	a.translate(this.x, this.y);
+
 	for(var i in this.layers){
-		this.layers[i].draw(a,b);
+		if( this.layers[i].isOffscreen) {
+			if( this.layers[i].offscreen ){
+				a.drawImage(this.layers[i].offscreen, 0, 0);
+			}else{
+				this.layers[i].offscreen = document.createElement('canvas');
+				this.layers[i].offscreen.width = 800; 
+				this.layers[i].offscreen.height = 600; 
+				var ctx = this.layers[i].offscreen.getContext('2d');
+				this.layers[i].draw(ctx, b);
+				a.drawImage(this.layers[i].offscreen, 0, 0);
+			}
+		}else{
+			this.layers[i].draw(a,b);
+		}
 	}
+
+	a.restore();
 }
 
 var sortFunc = function(a, b){
 	return a.y - b.y;
 }
 
-RenderContainer.prototype.tick = function(){
+RenderContainer.prototype.tick = function(elapsed){
 	var t = null;
 	for(var i in this.layers){
 		if(i == this.orderLayer) this.layers[i].sortChildren(sortFunc);
@@ -44,7 +62,7 @@ RenderContainer.prototype.tick = function(){
 				t._tick();
 			}
 			if(t.tick){
-				t.tick();
+				t.tick(elapsed);
 			}
 		}
 	}
