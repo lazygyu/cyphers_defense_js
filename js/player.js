@@ -14,6 +14,9 @@ Character.prototype.direction = 's';
 Character.prototype.selected = false;
 Character.prototype.BitmapAnimation_initialize = Character.prototype.initialize;
 Character.prototype.z = 1;
+Character.prototype.level = 1;
+Character.prototype.kill = 0;
+Character.prototype.actions = [];
 
 Character.prototype.initialize = function(img, stage){
 	var localSpriteSheet = new createjs.SpriteSheet({
@@ -112,7 +115,31 @@ Character.prototype.draw = function(a, b){
 		a.strokeStyle = '#0f0';
 		drawEllipse(a, -(c.regX/3)*2, -(c.regY/3), (d.width/3)*2, 20);
 		a.restore();
-		/*
+
+		a.save();
+		
+		a.beginPath();
+		a.moveTo(-(c.regX+1), -c.regY);
+		a.strokeStyle = 'black';
+		a.lineWidth = 4;
+		a.lineTo(d.width-c.regX+2, -c.regY);
+		a.stroke();
+		a.closePath();
+		a.beginPath();
+		a.moveTo(-c.regX, -c.regY);
+		a.strokeStyle = 'red';
+		a.lineWidth = 2;
+		a.lineTo(d.width - c.regX , -c.regY);
+		a.stroke();
+		a.closePath();
+		a.beginPath();
+		a.strokeStyle = 'yellowgreen';
+		a.moveTo(-c.regX, -c.regY);
+		a.lineTo( ((this.hp / this.maxHp) * d.width) - c.regX, -c.regY);
+		a.stroke();
+		a.closePath();
+		a.restore();
+		
 		a.save();
 		a.strokeStyle = '#f00';
 		a.beginPath();
@@ -127,7 +154,7 @@ Character.prototype.draw = function(a, b){
 		a.stroke();
 		a.closePath();
 		a.restore();
-		*/
+		
 	}
 	if(c!=null){
 		a.save();
@@ -191,8 +218,12 @@ Character.prototype.aura = function(onoff){
 Character.prototype.refind_count = 0;
 Character.prototype.wait_count = 0;
 
+Character.prototype.lastTime = null;
+
 Character.prototype.tick = function(elapsed){
 	var canmove = null;
+	
+
 	if( this.curTar == null && this.path.length > 0 ){
 		var tmpTar = this.path[this.path.length - 1];
 		canmove = canmovetile(tmpTar.tileX, tmpTar.tileY);
@@ -311,11 +342,29 @@ Character.prototype.attack_end = function(){
 	this.onAnimationEnd = null;
 }
 
+Character.prototype.addDamage = function(atk){
+	var dmg = Math.max(atk - this.def, 1);
+	this.hp -= dmg;
+	if( this.hp < 0 ) this.hp = 0;
+}
+
+Character.prototype.tryAttack = function(){
+
+}
+
 function Dimus(img){
 	this.initialize(img);
 }
 
 Dimus.prototype = new Character('images/dimus.png');
+
+Dimus.prototype.Character_initialize = Dimus.prototype.initialize;
+Dimus.prototype.initialize = function(img, stage){
+	this.Character_initialize(img, stage);
+	this.name = "태도 다이무스";
+	this.actions = ["attack", "move", "stop"];
+	this.thumb = contentManager.imgDimus_thumb;
+}
 
 function Rin(img){
 	this.initialize(img);
@@ -352,7 +401,7 @@ Rin.prototype.initialize = function(img, stage){
 
 	//this.shadow = new createjs.Shadow("#000", 3, 2, 10);
 	this.stage = stage;
-	this.name = "Player";
+	this.name = "신비의 린";
 	this.currentFrame = 0;
 	this.BitmapAnimation_initialize(localSpriteSheet);
 	//this.gotoAndPlay("stand_s");
@@ -360,7 +409,6 @@ Rin.prototype.initialize = function(img, stage){
 	//this.x = 100;
 	//this.y = 300;
 	this.snapToPixel = true;
-
-	this.auraShadow = new createjs.Shadow("#FF0", 0, 0, 2);
+	this.actions = ["move", "stop"];
 }
 

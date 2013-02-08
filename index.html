@@ -9,8 +9,9 @@
 	<script type="text/javascript" src="js/ContentManager.js"></script>
 	<script type="text/javascript" src="js/player.js"></script>
 	<script type="text/javascript" src="js/renderContainer.js"></script>
+	<script type="text/javascript" src="js/dashboard.js"></script>
 	<script type="text/javascript">
-		var stage, map, contentManager, layer1, fpstxt, rCont, cloud, cloud2, elapsed;
+		var stage, map, contentManager, layer1, fpstxt, rCont, cloud, cloud2, elapsed, dashboard;
 		var chrs = [];
 		var Direction = ['s', 'sw', 'w', 'nw', 'n', 'ne', 'e', 'se'];
 		var ustate = 0;
@@ -38,6 +39,11 @@
 			cursor.z = 10;
 			
 			rCont.addChild(cursor);
+
+			dashboard = new Dashboard();
+			dashboard.z = 99;
+			
+			rCont.addChild(dashboard);
 
 			contentManager = new ContentManager();
 			contentManager.SetDownloadComplated(startGame);
@@ -95,21 +101,24 @@
 			var is_select_action = false;
 			var toUnSelect = [];
 			if( ustate == 1 && (rect.width > 5 || rect.height > 5)){
+				var scount = 0;
 				for(var i in chrs){
-					if( rectHit(chrs[i].getBound(), rect) ){
+					if( scount < 5 && rectHit(chrs[i].getBound(), rect) ){
 						chrs[i].selected = true;
 						is_select_action = true;
+						scount++;
 					}else{
 						toUnSelect.push(chrs[i]);
 					}
 				}
 			}else if(ustate == 1){
+				var scount = 0;
 				for(var i in chrs){
 					var p = chrs[i].globalToLocal(e.stageX, e.stageY);
-					if( chrs[i].hitTest(p.x, p.y) && !is_select_action ){
+					if( scount < 5 && chrs[i].hitTest(p.x, p.y) && !is_select_action ){
 						chrs[i].selected = true;
 						is_select_action = true;
-						
+						scount++;
 					}else{
 						toUnSelect.push(chrs[i]);
 					}
@@ -121,6 +130,7 @@
 				for(var i in toUnSelect){
 					toUnSelect[i].selected = false;
 				}
+				dashboard.update(chrs);
 			}
 			cursor.graphics.clear();
 			spoint = null;
@@ -437,7 +447,7 @@
 	</style>
 </head>
 <body onload="init();">
-	<canvas id="mainCanvas" width="800" height="600">
+	<canvas id="mainCanvas" width="800" height="676">
 		This page needs a browser that support the canvas.
 	</canvas>
 	<button type="button" onclick="addDimus();">다이무스 더!</button>
