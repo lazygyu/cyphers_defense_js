@@ -58,8 +58,20 @@ Dashboard.prototype.draw = function(a, b){
 			a.font = "bold 12px 맑은고딕";
 			a.fillText(this.selected[i].name, i * 90 + 8, 20);
 		}
-		a.font = "bold 9px 맑은고딕";
-		a.fillText(this.selected[i].hp + " / " + this.selected[i].maxHp, i * 90 + 8, 40);
+		a.beginPath();
+		a.lineWidth = 5;
+		a.strokeStyle = 'red';
+		a.moveTo(i*90+1,85);
+		a.lineTo( i*90+80, 85);
+		a.stroke();
+		a.closePath();
+		a.beginPath();
+		a.moveTo(i*90+1,85);
+		a.strokeStyle = 'yellowGreen';
+		a.lineTo( (this.selected[i].hp / this.selected[i].maxHp) * (i*90+80), 85);
+		a.stroke();
+		a.closePath();
+		a.strokeStyle = 'black';
 		a.strokeRect(i*90, 5, 80, 90);
 	}
 
