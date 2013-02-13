@@ -12,6 +12,7 @@
 	<script type="text/javascript" src="js/dashboard.js"></script>
 	<script type="text/javascript">
 		var stage, map, contentManager, layer1, fpstxt, rCont, cloud, cloud2, elapsed, dashboard;
+        var lightmap;
 		var chrs = [];
 		var Direction = ['s', 'sw', 'w', 'nw', 'n', 'ne', 'e', 'se'];
 		var ustate = 0;
@@ -44,6 +45,15 @@
 			dashboard.z = 99;
 			
 			rCont.addChild(dashboard);
+
+            lightmap = [];
+            for(var i = 0;i<50;i++){
+                lightmap[i] = [];
+                for(var j=0;j<37;j++){
+                    lightmap[i][j] = 0;
+                }
+            }
+
 
 			contentManager = new ContentManager();
 			contentManager.SetDownloadComplated(startGame);
