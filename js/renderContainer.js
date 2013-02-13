@@ -58,13 +58,19 @@ RenderContainer.prototype.tick = function(elapsed){
 		if(i == this.orderLayer) this.layers[i].sortChildren(sortFunc);
 		for(var j in this.layers[i].children){
 			t = this.layers[i].children[j];
-			if(t._tick){
-				t._tick();
-			}
-			if(t.tick){
-				t.tick(elapsed);
+			if( t.destroy ){
+				//console.log( t.name );
+				this.layers[i].removeChildAt(j);
+			}else{
+				if(t._tick){
+					t._tick();
+				}
+				if(t.tick){
+					t.tick(elapsed);
+				}
 			}
 		}
+
 	}
 }
 
