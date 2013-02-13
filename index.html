@@ -5,6 +5,7 @@
 	<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
 	<script type="text/javascript" src="http://code.createjs.com/easeljs-0.5.0.min.js"></script>
 	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
+	<script type="text/javascript" src="js/filters/ColorMatrixFilter.js"></script>
 	<script type="text/javascript" src="js/TileMap.js"></script>
 	<script type="text/javascript" src="js/ContentManager.js"></script>
 	<script type="text/javascript" src="js/player.js"></script>
@@ -15,6 +16,7 @@
 	<script type="text/javascript">
 		var stage, map, contentManager, layer1, fpstxt, rCont, cloud, cloud2, elapsed, dashboard;
 		var chrs = [], enemies = [], effects = [];
+		var lightmap;
 		var Direction = ['s', 'sw', 'w', 'nw', 'n', 'ne', 'e', 'se'];
 		var ustate = 0;
 		var spoint = null;
@@ -27,6 +29,14 @@
 			layer1 = new TileMap({stage: rCont, width:50, height:37, z:1});
 			map.setMapChip('images/town01_a.png');
 			layer1.setMapChip('images/town01_a.png');
+
+			lightmap = [];
+			for(var i=0;i<50;i++){
+				lightmap[i] = [];
+				for(var j=0;j<37;j++){
+					lightmap[i][j] = 0;
+				}
+			}
 
 
 			stage.onMouseDown = mouseDownHandler;
@@ -353,6 +363,7 @@
 			//map.createRandom();
 			$.ajax({url:'datas/stage1.map', success:function(txt){
 				map.parseText(txt);
+				map.setLightmap(lightmap);
 				//stage.addChild(map);
 				//rCont.addChild(map.tiles);
 				var player = new Dimus(contentManager.imgDimus, stage);
@@ -384,6 +395,7 @@
 			$.ajax({url:'datas/stage1_layer1.map', success:function(txt){
 				layer1.z = 1;
 				layer1.parseText(txt);
+				//layer1.setLightmap(lightmap);
 				rCont.addChild(chrs);
 				//rCont.addChild(layer1.tiles);
 				cloud = new createjs.Bitmap(contentManager.imgCloud);
@@ -415,8 +427,8 @@
 				enemies.push(sentinel);
 				//stage.addChild(player);
 				//stage.addChild(layer1);
-				rCont.layers[0].isOffscreen = true;
-				contentManager.bgm.play();
+				//rCont.layers[0].isOffscreen = true;
+				//contentManager.bgm.play();
 				
 			}});
 		}
@@ -435,7 +447,13 @@
 		elapsed = 0;
 		function tick(){
 			var tpt = null;
+			for(var i = 0; i < 50; i++){
+				for(var j=0;j<37;j++){
+					lightmap[i][j] = 0;
+				}
+			}
 			for(var i in chrs){
+				chrs[i].getLightmap(lightmap);
 				tpt = chrs[i].globalToLocal(stage.mouseX, stage.mouseY);
 				if( chrs[i].hitTest(tpt.x, tpt.y) ){
 				}else{

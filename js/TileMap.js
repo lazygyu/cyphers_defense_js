@@ -58,7 +58,7 @@ TileMap.prototype.parseText = function(txt){
 		for(var i=0;i<this.width;i++){
 			if( typeof(this.map[i]) == "undefined" ) this.map[i] = [];
 			this.map[i][j] = tmp[i + (j*this.width)]; 
-			var tmpTile = new Tile(this.mapchip, null, i, j);
+			var tmpTile = new Tile(this.mapchip, null, i, j, this);
 			var obj = this.sh.getFrame(this.map[i][j]);
 			tmpTile.no = this.map[i][j];
 			////console.log(this.map[i][j]);
@@ -111,8 +111,14 @@ TileMap.prototype.draw = function(a,b){
 	return true;
 }
 
-var Tile = function(texture, collision, x, y){
-	this.initialize(texture, collision, x, y);
+TileMap.prototype.lightmap = null;
+
+TileMap.prototype.setLightmap = function(lm){
+	this.lightmap = lm;
+}
+
+var Tile = function(texture, collision, x, y, map){
+	this.initialize(texture, collision, x, y, map);
 }
 
 Tile.prototype = new createjs.Bitmap();
@@ -122,8 +128,9 @@ Tile.prototype.regX = 8;
 Tile.prototype.regY = 8;
 Tile.prototype.tileX = 0;
 Tile.prototype.tileY = 0;
+Tile.prototype.map = null;
 
-Tile.prototype.initialize = function(texture, collision, x, y){
+Tile.prototype.initialize = function(texture, collision, x, y, map){
 	if( texture != null ){
 		this.Bitmap_initialize(texture);
 		this.empty = false;
@@ -136,6 +143,13 @@ Tile.prototype.initialize = function(texture, collision, x, y){
 	this.x = x * this.Width;
 	this.y = y * this.Height;
 	this.snapToPixel = true;
+	this.map = map;
+	this.cache(0, 0, this.Width, this.Height);
+}
+
+Tile.prototype.setRect = function(srect){
+	this.sourceRect = srect;
+	this.updateCache();
 }
 
 Tile.prototype.getRect = function(){
@@ -146,12 +160,30 @@ Tile.prototype.getRect = function(){
 
 Tile.prototype.draw_old = Tile.prototype.draw;
 
+var gfilter = new createjs.ColorMatrixFilter([
+	0.3, 0.3, 0.3, 0, 0,
+	0.3, 0.3, 0.3, 0, 0,
+	0.3, 0.3, 0.3, 0, 0,
+	0, 0, 0, 1, 0
+]);
+
 Tile.prototype.draw = function(a,b){
 	if( this.no == null ){
 		return true;
+	} else if ((this.map.lightmap && this.map.lightmap[this.tileX][this.tileY] == 0)){
+		var c = this.sourceRect;
+		if( this.filters.length == 0){
+			this.filters = [gfilter];
+			this.updateCache();
+		}
+		a.drawImage(this.image, c.x, c.y, c.width, c.height, -this.regX, -this.regY, c.width, c.height);
 	}else{
 		//this.draw_old(a,b);
 		var c = this.sourceRect;
+		if( this.filters.length > 0 ){
+			this.filters = [];
+			this.updateCache();
+		}
 		a.drawImage(this.image, c.x, c.y, c.width, c.height, -this.regX, -this.regY, c.width, c.height);
 		//a.fillText(this.y, 0, 0);
 	}

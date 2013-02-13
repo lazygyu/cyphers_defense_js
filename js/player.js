@@ -340,6 +340,7 @@ Character.prototype.actions = [];
 Character.prototype.atkRange = 1;
 Character.prototype.atkDelay = 1000;
 Character.prototype.moveSpeed = 1;
+Character.prototype.sight = 10;
 
 Character.prototype.initialize = function(img, stage){
 	var localSpriteSheet = new createjs.SpriteSheet({
@@ -612,6 +613,52 @@ Character.prototype.tryAttack = function(){
 
 }
 
+Character.prototype.getLightmap = function(lightmap){
+	var tx = Math.floor(this.x / 16);
+	var ty = Math.floor(this.y / 16);
+	var px,py;
+	var ang = 90 / this.sight;
+	var tmp = null;
+	lightmap[tx][ty] = 1;
+	var dang = 0;
+	switch(this.direction){
+		case "se":
+			dang = 0;
+		break;
+		case "s":
+			dang = 45;
+		break;
+		case "sw":
+			dang = 90;
+		break;
+		case "w":
+			dang = 135;
+		break;
+		case "nw":
+			dang = 180;
+		break;
+		case "n":
+			dang = 225;
+		break;
+		case "ne":
+			dang = 270;
+		break;
+		case "e":
+			dang = 315;
+		break;
+	}
+	
+	for(var i=0;i<this.sight;i++){
+		tmp = ((ang*i) + dang ) * Math.PI / 180;
+		for(var j=0;j<this.sight;j++){
+			px = Math.floor(j * Math.cos(tmp)) + tx;
+			py = Math.floor(j * Math.sin(tmp)) + ty;
+			if(px < 50 && py < 37 && lightmap[px]) lightmap[px][py] = 1;
+		}
+		
+	}
+}
+
 function Dimus(img){
 	this.initialize(img);
 }
@@ -784,6 +831,9 @@ Sentinel.prototype.initialize = function(img){
 }
 Sentinel.prototype.draw_ch = Sentinel.prototype.draw;
 Sentinel.prototype.draw = function(a, b){
+	var tilex = Math.floor(this.x / 16);
+	var tiley = Math.floor(this.y / 16);
+	if( !lightmap[tilex][tiley] ) return true;
 	var c = this.spriteSheet.getFrame(this.currentFrame);
 	var d=c.rect;
 	a.save();
