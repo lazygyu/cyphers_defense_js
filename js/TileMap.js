@@ -144,12 +144,6 @@ Tile.prototype.initialize = function(texture, collision, x, y, map){
 	this.y = y * this.Height;
 	this.snapToPixel = true;
 	this.map = map;
-	this.cache(0, 0, this.Width, this.Height);
-}
-
-Tile.prototype.setRect = function(srect){
-	this.sourceRect = srect;
-	this.updateCache();
 }
 
 Tile.prototype.getRect = function(){
@@ -160,30 +154,18 @@ Tile.prototype.getRect = function(){
 
 Tile.prototype.draw_old = Tile.prototype.draw;
 
-var gfilter = new createjs.ColorMatrixFilter([
-	0.3, 0.3, 0.3, 0, 0,
-	0.3, 0.3, 0.3, 0, 0,
-	0.3, 0.3, 0.3, 0, 0,
-	0, 0, 0, 1, 0
-]);
-
 Tile.prototype.draw = function(a,b){
 	if( this.no == null ){
 		return true;
 	} else if ((this.map.lightmap && this.map.lightmap[this.tileX][this.tileY] == 0)){
 		var c = this.sourceRect;
-		if( this.filters.length == 0){
-			this.filters = [gfilter];
-			this.updateCache();
-		}
-		a.drawImage(this.image, c.x, c.y, c.width, c.height, -this.regX, -this.regY, c.width, c.height);
+		//a.drawImage(this.image, c.x, c.y, c.width, c.height, -this.regX, -this.regY, c.width, c.height);
+		a.fillStyle = 'rgba(0,0,0,0.5)';
+		a.fillRect(-this.regX, -this.regY, c.width, c.height);
+		//a.fillText(this.y, 0, 0);
 	}else{
 		//this.draw_old(a,b);
 		var c = this.sourceRect;
-		if( this.filters.length > 0 ){
-			this.filters = [];
-			this.updateCache();
-		}
 		a.drawImage(this.image, c.x, c.y, c.width, c.height, -this.regX, -this.regY, c.width, c.height);
 		//a.fillText(this.y, 0, 0);
 	}

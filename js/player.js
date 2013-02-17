@@ -119,7 +119,7 @@ moveState.prototype.refind_count = 0;
 // 매 tick 마다 이동 동작을 수행해줘야지
 moveState.prototype.tick = function(elapsed){
 	var canmove = null;
-	if( this.curTar == null && this.path.length > 0 ){
+	if( this.curTar == null && this.path && this.path.length > 0 ){
 		// 이동은 끝났지만 아직 경로가 남아있을 경우
 		var tmpTar = this.path[this.path.length - 1];
 		canmove = canmovetile(tmpTar.tileX, tmpTar.tileY);
@@ -129,7 +129,7 @@ moveState.prototype.tick = function(elapsed){
 			this.wait_count = 0;
 		}else if(canmove == 2){
 			tmpTar = this.path[0];
-			var r = astar(Math.floor(this.realX / 16), Math.floor(this.realY / 16), tmpTar.tileX, tmpTar.tileY);
+			var r = astar(Math.round(this.realX / 16), Math.round(this.realY / 16), tmpTar.tileX, tmpTar.tileY);
 			if( r == null ){
 				this.refind_count++;
 				if( this.refind_count > 10){
@@ -212,8 +212,8 @@ moveState.prototype.tick = function(elapsed){
 	this.pUnit.y = Math.round(this.realY);
 
 	if( this.atk && this.path[0]  ){
-		var tpx = Math.floor(this.pUnit.x / 16);
-		var tpy = Math.floor(this.pUnit.y / 16);
+	    var tpx = Math.round(this.pUnit.x / 16);
+	    var tpy = Math.round(this.pUnit.y / 16);
 		var dist = Math.sqrt(Math.pow(Math.abs(this.path[0].tileX - tpx), 2) + Math.pow(Math.abs(this.path[0].tileY - tpy), 2));
 		//if( tpx != this.path[0].tileX && tpy != this.path[0].tileY ){
 		//	console.log(dist);
@@ -225,7 +225,7 @@ moveState.prototype.tick = function(elapsed){
 		}
 	}
 
-	if( this.curTar && Math.floor(this.pUnit.x / 16) == this.curTar.tileX && Math.floor(this.pUnit.y / 16) == this.curTar.tileY ){
+	if (this.curTar && Math.round(this.pUnit.x / 16) == this.curTar.tileX && Math.round(this.pUnit.y / 16) == this.curTar.tileY) {
 		this.curTar = null;
 		if( this.path.length == 0 ){
 			this.mustDestroy = true;
@@ -234,7 +234,9 @@ moveState.prototype.tick = function(elapsed){
 }
 
 moveState.prototype.destroy = function(){
-	//끝날때 서있는 애니메이션으로 돌아가쟝
+    //끝날때 서있는 애니메이션으로 돌아가쟝
+    this.path.length = 0;
+    this.curTar = null;
 	this.pUnit.gotoAndPlay('stand_' + this.pUnit.direction);
 }
 
@@ -266,10 +268,10 @@ attackState.prototype.tick = function(elapsed){
 			return;
 		}
 	}else{
-		var ox = Math.floor(this.pUnit.x / 16);
-		var oy = Math.floor(this.pUnit.y / 16);
-		var tx = Math.floor(this.targetUnit.x / 16);
-		var ty = Math.floor(this.targetUnit.y / 16);
+	    var ox = Math.round(this.pUnit.x / 16);
+	    var oy = Math.round(this.pUnit.y / 16);
+	    var tx = Math.round(this.targetUnit.x / 16);
+	    var ty = Math.round(this.targetUnit.y / 16);
 
 		var dx = tx - ox;
 		var dy = ty - oy;
@@ -279,7 +281,7 @@ attackState.prototype.tick = function(elapsed){
 		if( distance > this.pUnit.atkRange + 1 ){
 			// 사정거리보다 멀 때는 이동하고
 			// 걍 이동 상태를 끼워 넣는걸로 처리해보자
-			this.pUnit.pushState(new moveState(this.pUnit, astar(Math.floor(this.pUnit.x/16), Math.floor(this.pUnit.y/16), Math.floor(this.targetUnit.x/16), Math.floor(this.targetUnit.y/16)), true)); 
+		    this.pUnit.pushState(new moveState(this.pUnit, astar(Math.round(this.pUnit.x / 16), Math.round(this.pUnit.y / 16), Math.round(this.targetUnit.x / 16), Math.round(this.targetUnit.y / 16)), true));
 		}else{
 			// 사정거리보다 작을 때는 공격을 시도하자!
 
@@ -340,7 +342,7 @@ Character.prototype.actions = [];
 Character.prototype.atkRange = 1;
 Character.prototype.atkDelay = 1000;
 Character.prototype.moveSpeed = 1;
-Character.prototype.sight = 10;
+Character.prototype.sight = 20;
 
 Character.prototype.initialize = function(img, stage){
 	var localSpriteSheet = new createjs.SpriteSheet({
@@ -471,20 +473,24 @@ Character.prototype.draw = function(a, b){
 		a.closePath();
 		a.restore();
 		
-		a.save();
-		a.strokeStyle = '#f00';
-		a.beginPath();
-		//a.moveTo(this.x, this.y);
-		
-		var tmpp = null;
-		for(var i=0,l=this.path.length;i<l;i++){
-				tmpp = this.globalToLocal(this.path[i].x, this.path[i].y);
-				a.fillText(i, tmpp.x, tmpp.y);
-				a.lineTo(tmpp.x, tmpp.y);
+		/*
+		if (this.currentState && this.currentState.name == "move") {
+		    a.save();
+		    a.strokeStyle = '#f00';
+		    a.beginPath();
+		    //a.moveTo(this.x, this.y);
+
+		    var tmpp = null;
+		    for (var i = 0, l = this.currentState.path.length; i < l; i++) {
+		        tmpp = this.globalToLocal(this.currentState.path[i].x, this.currentState.path[i].y);
+		        a.fillText(l-i, tmpp.x, tmpp.y);
+		        a.lineTo(tmpp.x, tmpp.y);
+		    }
+		    a.stroke();
+		    a.closePath();
+		    a.restore();
 		}
-		a.stroke();
-		a.closePath();
-		a.restore();
+		*/
 		
 	}
 	if( this.currentState ){
@@ -576,7 +582,11 @@ Character.prototype.tick = function(elapsed){
 	
 }
 
-Character.prototype.setState = function(st){
+Character.prototype.setState = function (st) {
+    if (this.currentState) {
+        this.currentState.destroy();
+        this.currentState = null;
+    }
 	this.currentState = st;
 }
 
@@ -614,12 +624,16 @@ Character.prototype.tryAttack = function(){
 }
 
 Character.prototype.getLightmap = function(lightmap){
-	var tx = Math.floor(this.x / 16);
-	var ty = Math.floor(this.y / 16);
+	var tx = Math.round(this.x / 16);
+	var ty = Math.round(this.y / 16);
 	var px,py;
-	var ang = 90 / this.sight;
+	var ang = 1; //90 / this.sight;
 	var tmp = null;
 	lightmap[tx][ty] = 1;
+	if( tx-1 >= 0) lightmap[tx-1][ty] = 1;
+	if( tx+1 < 50) lightmap[tx+1][ty] = 1;
+	if( ty-1 >= 0) lightmap[tx][ty-1] = 1;
+	if( ty+1 < 37) lightmap[tx][ty+1] = 1;
 	var dang = 0;
 	switch(this.direction){
 		case "se":
@@ -648,12 +662,13 @@ Character.prototype.getLightmap = function(lightmap){
 		break;
 	}
 	
-	for(var i=0;i<this.sight;i++){
+	for(var i=0;i<90;i++){
 		tmp = ((ang*i) + dang ) * Math.PI / 180;
-		for(var j=0;j<this.sight;j++){
-			px = Math.floor(j * Math.cos(tmp)) + tx;
-			py = Math.floor(j * Math.sin(tmp)) + ty;
-			if(px < 50 && py < 37 && lightmap[px]) lightmap[px][py] = 1;
+		for (var j = 0; j < this.sight; j++) {
+			px = Math.round(j * Math.cos(tmp)) + tx;
+			py = Math.round(j * Math.sin(tmp)) + ty;
+			if (px < 50 && py < 37 && lightmap[px]) lightmap[px][py] = 1;
+			if ((px != tx || py != ty) && canviewtile(px, py) == 2) break;;
 		}
 		
 	}
@@ -676,6 +691,7 @@ Dimus.prototype.initialize = function(img, stage){
 	this.atkDelay = 500;
 	this.voices = contentManager.dimusVoices;
 	this.effectImage = contentManager.imgDimus_ef_attack;
+	this.sight = 8;
 }
 
 function Rin(img){
@@ -737,6 +753,7 @@ Rin.prototype.initialize = function(img, stage){
 	this.moveSpeed = 0.90;
 	this.voices = contentManager.rinVoices;
 	this.effectImage = contentManager.imgRin_ef_attack;
+	this.sight = 13;
 }
 
 Cain.prototype = new Character('images/cain.png');
@@ -787,6 +804,7 @@ Cain.prototype.initialize = function(img, stage){
 	this.attackDistance = 8;
 	this.moveSpeed = 0.95;
 	this.voices = contentManager.cainVoices;
+	this.sight = 30;
 }
 
 
@@ -831,8 +849,8 @@ Sentinel.prototype.initialize = function(img){
 }
 Sentinel.prototype.draw_ch = Sentinel.prototype.draw;
 Sentinel.prototype.draw = function(a, b){
-	var tilex = Math.floor(this.x / 16);
-	var tiley = Math.floor(this.y / 16);
+	var tilex = Math.round(this.x / 16);
+	var tiley = Math.round(this.y / 16);
 	if( !lightmap[tilex][tiley] ) return true;
 	var c = this.spriteSheet.getFrame(this.currentFrame);
 	var d=c.rect;

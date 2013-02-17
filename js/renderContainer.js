@@ -2,7 +2,7 @@ var RenderContainer = function(){};
 
 RenderContainer.prototype = new createjs.DisplayObject();
 RenderContainer.prototype.layers = [];
-RenderContainer.prototype.orderLayer = 1;
+RenderContainer.prototype.orderLayer = 2;
 RenderContainer.prototype.visible = true;
 
 RenderContainer.prototype.addChild = function(obj){
@@ -46,6 +46,10 @@ RenderContainer.prototype.draw = function(a, b){
 	}
 
 	a.restore();
+}
+
+RenderContainer.prototype.updateCache = function (l) {
+    this.layers[l].offscreen = null;
 }
 
 var sortFunc = function(a, b){

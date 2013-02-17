@@ -1,11 +1,10 @@
-<!doctype html5>
+﻿<!doctype html5>
 <html>
 <head>
 	<title>HTML5 demo</title>
 	<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
 	<script type="text/javascript" src="http://code.createjs.com/easeljs-0.5.0.min.js"></script>
 	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
-	<script type="text/javascript" src="js/filters/ColorMatrixFilter.js"></script>
 	<script type="text/javascript" src="js/TileMap.js"></script>
 	<script type="text/javascript" src="js/ContentManager.js"></script>
 	<script type="text/javascript" src="js/player.js"></script>
@@ -13,10 +12,11 @@
 	<script type="text/javascript" src="js/dashboard.js"></script>
 	<script type="text/javascript" src="js/util.js"></script>
 	<script type="text/javascript" src="js/effect.js"></script>
+    <script type="text/javascript" src="js/LightView.js"></script>
 	<script type="text/javascript">
 		var stage, map, contentManager, layer1, fpstxt, rCont, cloud, cloud2, elapsed, dashboard;
 		var chrs = [], enemies = [], effects = [];
-		var lightmap;
+		var lightmap, lview;
 		var Direction = ['s', 'sw', 'w', 'nw', 'n', 'ne', 'e', 'se'];
 		var ustate = 0;
 		var spoint = null;
@@ -37,6 +37,9 @@
 					lightmap[i][j] = 0;
 				}
 			}
+			lview = new LightView(lightmap);
+			lview.z = 1;
+			
 
 
 			stage.onMouseDown = mouseDownHandler;
@@ -57,23 +60,41 @@
 			
 			rCont.addChild(dashboard);
 
+            lightmap = [];
+            for(var i = 0;i<50;i++){
+                lightmap[i] = [];
+                for(var j=0;j<37;j++){
+                    lightmap[i][j] = 0;
+                }
+            }
+
+
 			contentManager = new ContentManager();
 			contentManager.SetDownloadComplated(startGame);
 			contentManager.StartDownload();
 		}
 
 		function canmovetile(x, y){
-			var tx = Math.floor(x/1);
-			var ty = Math.floor(y/1);
+			var tx = Math.round(x/1);
+			var ty = Math.round(y / 1);
+			if (map.tiles[tx + (ty * 50)] && (map.tiles[tx + (ty * 50)].no != 240 && map.tiles[tx + (ty * 50)].no != 10 || layer1.tiles[tx + (ty * 50)].no != null)) return 2;
+
 			for(var i in chrs){
 				if( chrs[i].currentState.name == "move" &&  chrs[i].currentState.curTar && chrs[i].currentState.curTar.tileX == tx && chrs[i].currentState.curTar.tileY == ty){
 					return 1; 
-				}else if(  Math.floor(chrs[i].x/16) == tx && Math.floor(chrs[i].y/16) == ty){
+				}else if(  Math.round(chrs[i].x/16) == tx && Math.round(chrs[i].y/16) == ty){
 					return (chrs[i].currentState.name == "move")?1:2;
 				}
 			}
-			
 			return null;
+		}
+
+		function canviewtile(x, y) {
+		    var tx = Math.round(x);
+		    var ty = Math.round(y);
+		    if (map.tiles[tx + (ty * 50)] && (map.tiles[tx + (ty * 50)].no != 240 && map.tiles[tx + (ty * 50)].no != 10 || layer1.tiles[tx + (ty * 50)].no != null)) return 2;
+
+		    return null;
 		}
 
 		function mouseDownHandler(e){
@@ -186,13 +207,12 @@
 							}
 						}else{
 							var t = map.tiles[tx + (ty*50)];
-							player.path = [];
 							//console.log("click : " + tx + " / " + ty);
-							var r = astar(Math.floor(player.x /16), Math.floor(player.y / 16), tx, ty);
+							var r = astar(Math.round(player.x / 16), Math.round(player.y / 16), tx, ty);
 							selected_idx++;
 							if( r ) {
-								//console.log("Path length : " + r.length );
-								player.states = [];
+							    //console.log("Path length : " + r.length );
+							    player.states.length = 0;
 								player.setState(new moveState(player, r));
 							}
 						}
@@ -241,10 +261,14 @@
 
 				// 길 찾은 경우
 				if( cnode.tileX == tx && cnode.tileY == ty ){
-					var ret = [];
+				    var ret = [];
 					while(cnode.pnode){
-						ret.push(cnode);
+					    ret.push(cnode);
+					    if (ret.length > 300) break;
 						cnode = cnode.pnode;
+					}
+					if (ret.length > 300) {
+					    console.log("sx : " + sx + " / sy : " + sy + " tx : " + tx + " ty : " + ty);
 					}
 					return ret;
 				}
@@ -254,7 +278,7 @@
 				neighbor = getNeighbor(nodemap, cnode.tileX, cnode.tileY);
 				for(var i in neighbor){
 					tnode = neighbor[i];
-					if( tnode.closed || (tnode.no != 240 && tnode.no != 10)  || tnode.no2 != null || canmovetile(tnode.tileX, tnode.tileY) == 2  ){
+					if((tnode.tileX == sx && tnode.tileY == sy) ||  (tnode.no != 240 && tnode.no != 10) || tnode.no2 != null || canmovetile(tnode.tileX, tnode.tileY) == 2  ){
 						continue;
 					}
 					var already_visited = tnode.visited;
@@ -276,23 +300,7 @@
 						}
 
 					}
-					/*
-					if( openlist.indexOf(tnode) > -1 ){
-						if( tmpG <= tnode.G ){
-							tnode.G = tmpG;
-							tnode.F = tnode.G + tnode.H;
-							openlist.sort(Fsort);
-						}
-					}else if(!tnode.closed) {
-						tnode.pnode = cnode;
-						tnode.G = cnode.G;
-						tnode.G += (cnode.tileX != tnode.tileX && cnode.tileY != cnode.tileY)?14:10;
-						tnode.H = Math.abs(tx - tnode.tileX) + Math.abs(ty - tnode.tileY);
-						tnode.F = tnode.G + tnode.H;
-						tnode.visited = true;
-						openlist.push(tnode);
-					}
-					*/
+					
 				}
 			}
 			return null;
@@ -363,25 +371,27 @@
 			//map.createRandom();
 			$.ajax({url:'datas/stage1.map', success:function(txt){
 				map.parseText(txt);
-				map.setLightmap(lightmap);
+				//map.setLightmap(lightmap);
 				//stage.addChild(map);
 				//rCont.addChild(map.tiles);
 				var player = new Dimus(contentManager.imgDimus, stage);
-				player.z = 1;
+				player.z = 2;
 				player.x = 32;
 				player.y = 240;
 				chrs.push(player);
 
 				player = new Rin(contentManager.imgRin, stage);
-				player.z = 1;
+				player.z = 2;
 				player.x = 48;
 				player.y = 240;
+				player.setDirection("ne");
 				chrs.push(player);
 
 				player = new Cain(contentManager.imgCain, stage);
-				player.z = 1;
+				player.z = 2;
 				player.x = 64;
 				player.y = 240;
+				player.setDirection("e");
 				chrs.push(player);
 
 
@@ -393,7 +403,7 @@
 			}});
 
 			$.ajax({url:'datas/stage1_layer1.map', success:function(txt){
-				layer1.z = 1;
+				layer1.z = 2;
 				layer1.parseText(txt);
 				//layer1.setLightmap(lightmap);
 				rCont.addChild(chrs);
@@ -408,27 +418,28 @@
 				stage.addChild(rCont);
 				stage.addChild(fpstxt);
 				var sentinel = new Sentinel(contentManager.imgSentinel);
-				sentinel.z = 1;
+				sentinel.z = 2;
 				sentinel.x = 480;
 				sentinel.y = 128;
 				rCont.addChild(sentinel);
 				enemies.push(sentinel);
 				sentinel = new Sentinel(contentManager.imgSentinel);
-				sentinel.z = 1;
+				sentinel.z = 2;
 				sentinel.x = 640;
 				sentinel.y = 128;
 				rCont.addChild(sentinel);
 				enemies.push(sentinel);
 				sentinel = new Sentinel(contentManager.imgSentinel);
-				sentinel.z = 1;
+				sentinel.z = 2;
 				sentinel.x = 640;
 				sentinel.y = 320;
 				rCont.addChild(sentinel);
 				enemies.push(sentinel);
 				//stage.addChild(player);
 				//stage.addChild(layer1);
-				//rCont.layers[0].isOffscreen = true;
-				//contentManager.bgm.play();
+				rCont.layers[0].isOffscreen = true;
+				rCont.addChild(lview);
+				contentManager.bgm.play();
 				
 			}});
 		}
@@ -483,31 +494,12 @@
 			
 		}
 
-		function addDimus(){
-			var player = new Dimus(contentManager.imgDimus, stage);
-			player.z = 1;
-			player.x = 502;
-			player.y = 70;
-			chrs.push(player);
-			rCont.addChild(player);
-		}
-
-		function addRin(){
-			var player = new Rin(contentManager.imgRin, stage);
-			player.z = 1;
-			player.x = 502;
-			player.y = 70;
-			chrs.push(player);
-			rCont.addChild(player);
-		}
-
-		function addCain(){
-			var player = new Cain(contentManager.imgCain, stage);
-			player.z = 1;
-			player.x = 502;
-			player.y = 70;
-			chrs.push(player);
-			rCont.addChild(player);
+		function toggleBgm() {
+		    if (contentManager.bgm.paused) {
+		        contentManager.bgm.play();
+		    } else {
+		        contentManager.bgm.pause();
+		    }
 		}
 	</script>
 	<style type="text/css">
@@ -517,9 +509,7 @@
 	<canvas id="mainCanvas" width="800" height="676">
 		This page needs a browser that support the canvas.
 	</canvas>
-	<button type="button" onclick="addDimus();">다이무스 더!</button>
-	<button type="button" onclick="addRin();">린 테스트</button>
-	<button type="button" onclick="addCain();">카인 테스트</button>
+	<button type="button" onclick="toggleBgm();">BGM on/off</button>
 	<div>
 	<h4>To-do</h4>
 	<ul>
@@ -536,8 +526,10 @@
 		<li><s>캐릭터별 보이스 지원</s></li>
 		<li><s>이펙트 추가</s></li>
 		<li><s>이미 공격중인 대상에 대해 다시 공격 명령을 내릴 때 딜레이 처리</s></li>
+        <li>타일 종류 세분화 : 시야가 막히는 타일 / 이동이 불가능한 타일</li>
+		<li>캐릭터별 특수 스킬 추가</li>
+		<li>발사체/스플래시 데미지 추가</li>
 	</ul>
-	</div>
-	styl
+	</div>	
 </body>
 </html>
