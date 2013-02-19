@@ -13,14 +13,16 @@
 	<script type="text/javascript" src="js/util.js"></script>
 	<script type="text/javascript" src="js/effect.js"></script>
     <script type="text/javascript" src="js/LightView.js"></script>
+	<script type="text/javascript" src="js/Trigger.js"></script>
 	<script type="text/javascript">
 		var stage, map, contentManager, layer1, fpstxt, rCont, cloud, cloud2, elapsed, dashboard;
-		var chrs = [], enemies = [], effects = [];
+		var chrs = [], enemies = [], effects = [], triggers = [];
 		var lightmap, lview;
 		var Direction = ['s', 'sw', 'w', 'nw', 'n', 'ne', 'e', 'se'];
 		var ustate = 0;
 		var spoint = null;
 		var cursor = null;
+		var paused = false;
 
 		function init(){
 			rCont = new RenderContainer();
@@ -441,6 +443,58 @@
 				rCont.addChild(lview);
 				contentManager.bgm.play();
 				
+				var tmpTr = new Trigger();
+				tmpTr.check = function(){
+					return (enemies.length == 0);
+				}
+
+				tmpTr.tick = function(elapsed){
+					alert("승리!");
+					this.isEnd = true;
+					this.enable = false;
+					this.inProcess = false;
+				}
+				triggers.push(tmpTr);
+
+				tmpTr = new Trigger();
+				tmpTr.check = function(){
+					return true;
+				}
+				tmpTr.allTime = 0;
+				tmpTr.tick = function(elapsed){
+					var ctx = document.getElementById('mainCanvas').getContext('2d');
+					if( this.allTime > 1000 ){
+						ctx.fillStyle = "rgba(255,255,255,"+(255/(this.allTime-1000))+")";
+					}else{
+						ctx.fillStyle = "rgba(255,255,255,255)";
+					}
+					ctx.font = "bold 20px sans";
+					ctx.fillText("Game Start", 300, 200);
+					this.allTime += elapsed;
+					if( this.allTime > 3000 ){
+						this.isEnd = true;
+						this.enable = false;
+						this.inProcess = false;
+					}
+				}
+
+				triggers.push(tmpTr);
+
+				tmpTr = new Trigger();
+				tmpTr.check = function(){
+					return enemies[0].hp < enemies[0].maxHp;
+				}
+				tmpTr.tick = function(elapsed){
+					var tmp = new Speach();
+					tmp.font = 'normal 14px';
+					tmp.message = '아야!';
+					tmp.z = 99;
+					rCont.addChild(tmp);
+					this.isEnd = true;
+					this.enable = false;
+					this.inProcess = false;
+				}
+				triggers.push(tmpTr);
 			}});
 		}
 
@@ -481,6 +535,13 @@
 					enemies.splice(i, 1);
 				}
 			}
+
+			for(var i in triggers){
+				if( !triggers[i].inProcess && !triggers[i].isEnd && triggers[i].check() ){
+					triggers[i].inProcess = true;
+					break;
+				}
+			}
 			var nTime = createjs.Ticker.getTime(false);
 			elapsed = nTime - oldTime;
 			oldTime = nTime;
@@ -489,9 +550,14 @@
 			if(cloud.x > 800) cloud.x = -800;
 			if(cloud2.x > 800) cloud2.x = -800;
 			fpstxt.text = Math.round(createjs.Ticker.getMeasuredFPS()) + " fps";
+			
 			rCont.tick(elapsed);
 			stage.update();
-			
+			for(var i in triggers){
+				if(triggers[i].inProcess && !triggers[i].isEnd){
+					triggers[i].tick(elapsed);
+				}
+			}
 		}
 
 		function toggleBgm() {

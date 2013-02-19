@@ -556,6 +556,9 @@ Character.prototype.aura = function(onoff){
 
 Character.prototype.lastTime = null;
 Character.prototype.tick = function(elapsed){
+	
+	if(paused) return;
+
 	if( this.currentState ){
 		this.currentState.tick(elapsed);
 		if(this.currentState.mustDestroy ){
@@ -877,4 +880,22 @@ Sentinel.prototype.draw = function(a, b){
 	a.closePath();
 	a.restore();
 	this.draw_ch(a, b);
+}
+
+function Speach(){
+}
+
+Speach.prototype = new createjs.DisplayObject();
+Speach.prototype.thumb = null;
+Speach.prototype.message = '';
+Speach.prototype.font = '';
+
+Speach.prototype.draw = function(a,b){
+	a.save();
+	a.fillStyle = 'rgba(0,0,0,100)';
+	a.fillRect(0, 500, 800, 100);
+	a.fillStyle = '#fff';
+	a.font = this.font;
+	a.fillText(this.message, 10, 520);
+	a.restore();
 }
