@@ -8,7 +8,7 @@ HTML5 rts + defense game.
 git clone git://github.com/lazygyu/cyphers_defense_js.git
 ```
 
-There is no server-side script. So just put files to accessable path then you can see the game with a webbrowser which supports HTML5 (ex: google chrome, internet explorer 9+, etc).
+There is no server-side script. So just put files to accessible path then you can see the game with a web browser which supports HTML5 (ex: google chrome, internet explorer 9+, etc).
 
 ## Demo
 
